@@ -116,25 +116,25 @@ MEDIA = {
         "sec": 58,
     },
 
-    # ВИДЕО 1 — история Игоря. ⬇️ ВПИШИ в "sec" реальную длину видео в секундах.
+    # ВИДЕО 1 — история Игоря (217 сек, ~3:37). Отправлено как «Видео» → стрим.
     "video_1":       {
-        "file_id": "BQACAgIAAxkBAAMjahha-z4qjKU5N0vdaA2BpkP991oAAh2ZAAKUislIlXFwBBtVE3Y7BA",
-        "kind": "document",
-        "sec": 90,
+        "file_id": "BAACAgIAAxkBAAFK4_xqGJc2KnU8zTxw9MKZIUBSfTR0QwACB6UAAuhFyEhVCCU54ETd8DsE",
+        "kind": "video",
+        "sec": 217,
     },
 
-    # ВИДЕО 2 — как работает механика. ⬇️ впиши реальную длину в "sec".
+    # ВИДЕО 2 — схема по шагам (360 сек, 6:00).
     "video_2":       {
-        "file_id": "BQACAgIAAxkBAAMdahhQWH8nZmU6aCjyKcSi87oVqCYAAsuhAAIcf7hI4NDb87GMAgs7BA",
-        "kind": "document",
-        "sec": 90,
+        "file_id": "BAACAgIAAxkBAAFK5AJqGJeNA95llVq0ITdzGrrcmATjewACDKUAAuhFyEhHDzCtOAdDujsE",
+        "kind": "video",
+        "sec": 360,
     },
 
-    # ВИДЕО 3 — кому НЕ стоит. ⬇️ впиши реальную длину в "sec".
+    # ВИДЕО 3 — страхи и отговорки (440 сек, ~7:20).
     "video_3":       {
-        "file_id": "BQACAgIAAxkBAAMbahhQRlHSqn8kmwABaqjx-J74TjOjAALHoQACHH-4SDBaQh9qb6shOwQ",
-        "kind": "document",
-        "sec": 90,
+        "file_id": "BAACAgIAAxkBAAFK5AxqGJezUXw0IBB0D5s22_Qvepg9BAACEKUAAuhFyEhyXookSSRmfDsE",
+        "kind": "video",
+        "sec": 440,
     },
 
     # КРУЖОК-РАЗВИЛКА (58 сек) — после видео 3, мост к офферу.
@@ -200,51 +200,61 @@ DRIP_HOURS = {
 TXT = {
     "start": (
         "$750 чистыми.\n\n"
-        "Знаю, кому-то это «мало», кому-то — «отлично». Спорить не "
-        "буду — лучше покажу.\n\n"
-        "Это первый результат Игоря. Парень с нуля, без опыта. Через "
-        "несколько месяцев та же сумма стала его ДНЕВНОЙ выручкой. "
-        "А другой человек закрыл год на €472 000.\n\n"
-        "$750 → $750 в день → €472 000 в год.\n\n"
-        "И все они прошли один и тот же путь. В трёх коротких видео "
-        "покажу, какой именно:\n\n"
-        "🎬 С чего Игорь начал и как добрался до первой прибыли\n"
-        "⚙️ Что превращает $750 в стабильный доход\n"
-        "🙅 Кому за это лучше НЕ браться\n\n"
+        "Для кого-то это «немного». Для кого-то — первый нормальный "
+        "результат. Спорить не буду — лучше покажу, как он появился.\n\n"
+        "Это история Игоря. Он начинал с нуля: без опыта, без понимания, "
+        "где брать товар и как не потерять деньги на первой закупке.\n\n"
+        "Сначала он ошибся. Потом исправил анализ, нашёл нормальный "
+        "товар, закупил, отправил на Amazon — и вышел на первую чистую "
+        "прибыль.\n\n"
+        "А дальше начался рост: больше опыта, больше товаров, больше "
+        "оборот. У кого-то это превращается в стабильный доход, у кого-то "
+        "— в большие годовые цифры.\n\n"
+        "В трёх коротких видео покажу:\n\n"
+        "🎬 как Игорь дошёл до первой прибыли\n"
+        "⚙️ как работает эта схема\n"
+        "🙅 кому за это лучше не браться\n\n"
         "15 минут — и картина сложится. Сначала пара слов о том, кто я 👇"
     ),
     "after_circle_intro": (
-        "Теперь вы знаете, кто перед вами 🙂\n\n"
-        "Прежде чем покажу историю Игоря — гляньте, к чему ребята "
-        "приходят, когда механика отлажена. Это и есть тот «потолок», "
-        "к которому Игорь идёт со своих первых $750 👇"
-    ),
-    "proofs_v1_caption": (
-        "Разные страны, разные суммы, разные сроки. Но все они начинали "
-        "ровно там же, где Игорь — с нуля и с первой небольшой прибыли.\n\n"
-        "А теперь — как именно начинался путь у Игоря. Это одна минута 👇"
+        "Теперь вы понимаете, кто я и почему занимаюсь Amazon 🙂\n\n"
+        "Дальше — как именно начинался путь у Игоря. Это около 4 минут 👇"
     ),
     "before_v1": (
         "Включайте 👇\n\n"
-        "Тут без монтажа и красивых обещаний — просто шаг за шагом: с "
-        "чего человек начал, где ошибся, как исправил и к чему пришёл."
+        "Сейчас покажу историю Игоря коротко и по делу:\n\n"
+        "1. с чего он начал;\n"
+        "2. почему первый выбор товаров не подошёл;\n"
+        "3. что он исправил;\n"
+        "4. как вышел на первые чистые деньги."
     ),
-    "after_v1": (
+    "after_v1_video": (
+        "Досмотрели? 👇\n\n"
+        "Дальше — разбор: почему первый список товаров не сработал и "
+        "что изменилось после правок."
+    ),
+    "proofs_v1_caption": (
         "Вот почему этот пример важен.\n\n"
         "Игорь не нашёл хороший товар с первого раза. Первый список был "
         "слабый: где-то не сходились цифры, где-то товар был не тот, "
         "где-то покупка просто не имела смысла.\n\n"
-        "Но он получил правки, переделал работу — и уже во второй раз "
+        "Но он получил правки, переделал работу и уже во второй раз "
         "нашёл несколько нормальных вариантов.\n\n"
-        "Дальше всё пошло по шагам:\n\n"
-        "1. закупка товара\n"
-        "2. подготовка для Amazon\n"
-        "3. отправка на склад Amazon\n"
-        "4. продажи\n"
-        "5. чистая прибыль\n\n"
-        "Это нормальный живой путь: сделал, ошибся, исправил, получил "
-        "результат. Теперь покажу, откуда вообще берётся прибыль на "
-        "Amazon и что именно делает продавец 👇"
+        "Дальше всё пошло по цепочке:\n\n"
+        "закупка → подготовка товара → отправка на Amazon → продажи → "
+        "чистая прибыль.\n\n"
+        "Это нормальный живой путь. Не «нажал кнопку и заработал», а "
+        "сделал шаги, исправил ошибки и получил результат."
+    ),
+    "after_v1": (
+        "Смысл не в том, что Игорь сразу всё понял.\n\n"
+        "Сначала он ошибся — и именно поэтому пример нормальный.\n\n"
+        "Теперь разберём саму схему: откуда берётся прибыль на Amazon "
+        "и что делает продавец 👇"
+    ),
+    "after_v2_video": (
+        "Досмотрели? 👇\n\n"
+        "Дальше — примеры: как эта модель выглядит на разных рынках."
     ),
     "bridge_v2": (
         "Суть простая.\n\n"
@@ -295,16 +305,33 @@ TXT = {
         "После этого станет понятно, стоит ли вам вообще заходить в "
         "Amazon сейчас 👇"
     ),
+    "after_v3_video": (
+        "Досмотрели? 👇\n\n"
+        "Если дошли до конца — у вас уже есть база: путь Игоря, схема "
+        "и честный разбор страхов."
+    ),
     "after_v3": (
-        "Если досмотрели до этого места — это уже хороший знак 🙌\n\n"
-        "Теперь у вас есть база:\n\n"
-        "— вы увидели путь Игоря;\n"
-        "— поняли, как работает схема;\n"
-        "— увидели главные страхи, которые мешают старту;\n"
-        "— и понимаете, что тут нет магии, но есть конкретные шаги.\n\n"
-        "Дальше главный вопрос: как пройти этот путь без хаоса, без "
-        "лишних ошибок и без попыток собирать всё по кускам?\n\n"
-        "Об этом — коротко в следующем кружке 👇"
+        "Дальше — как пройти этот путь без хаоса и лишних ошибок.\n\n"
+        "Об этом коротко в следующем кружке 👇"
+    ),
+    "after_v1_proofs": (
+        "Готовы к следующему шагу? 👇\n\n"
+        "Покажу, откуда вообще берётся прибыль на Amazon — простыми "
+        "словами."
+    ),
+    "after_v2_proofs": (
+        "Видели примеры по странам? 👇\n\n"
+        "Дальше — честный разбор: почему люди понимают схему, но не "
+        "начинают."
+    ),
+    "offer_next": (
+        "Посмотрели форматы? 👇\n\n"
+        "Дальше — что входит в бонусы-инструменты и как забрать личный "
+        "разбор."
+    ),
+    "offer_gift_next": (
+        "Понятно, что даётся в подарок? 👇\n\n"
+        "Осталось — как забрать бонус и разобрать вашу ситуацию."
     ),
     "after_fork_circle": (
         "Смотрите.\n\n"
@@ -501,11 +528,17 @@ TXT = {
 
 BTN = {
     "start":      "Покажи, с чего начать",
-    "to_v1":      "Давайте посмотрим",
-    "to_v2":      "Как это работает",
-    "to_v3":      "Кому не стоит этим заниматься",
-    "to_fork":    "Что дальше",
-    "to_offer":   "Расскажи подробнее",
+    "v1_watch":   "▶️ Смотреть историю Игоря (~4 мин)",
+    "v1_proofs":  "📸 Разбор: что пошло не так",
+    "to_v2":      "⚙️ Дальше — как работает схема",
+    "v2_watch":   "▶️ Смотреть схему по шагам (~6 мин)",
+    "v2_proofs":  "🌍 Примеры по странам",
+    "to_v3":      "🙅 Дальше — почему не начинают",
+    "v3_watch":   "▶️ Смотреть разбор страхов (~7 мин)",
+    "to_fork":    "➡️ Что дальше — кружок",
+    "to_offer":   "📋 Что входит в работу со мной",
+    "offer_next": "💎 Смотреть форматы обучения",
+    "offer_gift_next": "🎁 Дальше — бонусы и разбор",
     "students":   "Результаты учеников",
     "programs":   "💎 Посмотреть форматы обучения",
     "site":       "Открыть сайт с результатами",
@@ -631,18 +664,18 @@ async def send_step(bot, uid, text, rows=None, skip_pause=False, **kwargs):
 
 
 # ---------------- ПАУЗЫ МЕЖДУ СООБЩЕНИЯМИ ----------------
-# Фиксированные паузы (не от длины видео в MEDIA):
-#   после кружка — CIRCLE_PAUSE_SEC (15)
-#   после видео  — VIDEO_PAUSE_SEC (40)
-#   между текстами — TEXT_PAUSE_SEC (4) + «печатает…»
-# Выключить: PAUSES=0  |  /pauses — переключатель для админа
+#   после кружка — CIRCLE_PAUSE_SEC
+#   после видео  — доля длины из MEDIA["sec"] (VIDEO_PAUSE_FACTOR), с потолком
+#   между текстами — по длине текста или TEXT_PAUSE_SEC
+# Выключить: PAUSES=0  |  /pauses  |  /fast — без пауз на медиа
 
 PAUSES_ON = os.getenv("PAUSES", "1").strip().lower() not in ("0", "false", "no", "")
-# FAST_MODE: только медиа (видео+кружки) идут без пауз, текст с обычными
-# (для быстрого ручного теста воронки). Переключатель — команда /fast.
 FAST_MODE = False
-CIRCLE_PAUSE_SEC = float(os.getenv("CIRCLE_PAUSE", "35") or "35")
-VIDEO_PAUSE_SEC = float(os.getenv("VIDEO_PAUSE", "90") or "90")
+CIRCLE_PAUSE_SEC = float(os.getenv("CIRCLE_PAUSE", "20") or "20")
+VIDEO_PAUSE_FACTOR = float(os.getenv("VIDEO_PAUSE_FACTOR", "0.35") or "0.35")
+VIDEO_PAUSE_MIN = float(os.getenv("VIDEO_PAUSE_MIN", "25") or "25")
+VIDEO_PAUSE_MAX = float(os.getenv("VIDEO_PAUSE_MAX", "150") or "150")
+VIDEO_PAUSE_SEC = float(os.getenv("VIDEO_PAUSE", "90") or "90")  # fallback без key
 TEXT_PAUSE_SEC = float(os.getenv("TEXT_PAUSE", "4") or "4")
 
 # Скорость чтения для индивидуальной паузы по тексту
@@ -685,7 +718,20 @@ async def pause_after_circle(bot, chat_id):
     await asyncio.sleep(CIRCLE_PAUSE_SEC)
 
 
-async def pause_after_video(bot, chat_id):
+def media_sec(key):
+    return int(MEDIA.get(key, {}).get("sec", 0) or 0)
+
+
+def video_pause_sec(key=None):
+    """Пауза после видео: ~35% длины ролика (можно не досматривать до конца)."""
+    sec = media_sec(key) if key else 0
+    if sec > 0:
+        t = sec * VIDEO_PAUSE_FACTOR
+        return max(VIDEO_PAUSE_MIN, min(t, VIDEO_PAUSE_MAX))
+    return VIDEO_PAUSE_SEC
+
+
+async def pause_after_video(bot, chat_id, key=None):
     """После видео — дать досмотреть. В FAST_MODE — без паузы."""
     if not PAUSES_ON or FAST_MODE:
         return
@@ -693,7 +739,7 @@ async def pause_after_video(bot, chat_id):
         await bot.send_chat_action(chat_id, ChatAction.RECORD_VIDEO)
     except Exception:
         pass
-    await asyncio.sleep(VIDEO_PAUSE_SEC)
+    await asyncio.sleep(video_pause_sec(key))
 
 
 async def send_text(bot, chat_id, text, **kwargs):
@@ -792,9 +838,17 @@ async def send_media_file(bot, chat_id, key):
     kind = ref.get("kind") or detect_kind(file_id)
     try:
         if kind == "document":
+            # Файлом Telegram качает всё видео целиком (~500 МБ) — долго.
+            # Перешли боту как «Видео» и замени file_id + kind: "video".
             await bot.send_document(chat_id, file_id)
         else:
-            await bot.send_video(chat_id, file_id)
+            await bot.send_video(
+                chat_id, file_id,
+                supports_streaming=True,
+                read_timeout=120,
+                write_timeout=120,
+                connect_timeout=60,
+            )
     except Exception as e:
         log.error("send_media_file %s failed: %s", key, e)
 
@@ -1104,7 +1158,8 @@ async def drip_fire(context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
     try:
         if tag == "after_v1":
-            await send_step(bot, uid, TXT["drip_after_v1"], [(BTN["to_v2"], "go_v2", False)])
+            await send_step(bot, uid, TXT["drip_after_v1"],
+                            [(BTN["to_v2"], "go_v2_prep", False)])
         elif tag == "after_v3":
             await send_step(bot, uid, TXT["drip_after_v3"], [(BTN["to_fork"], "go_fork", False)])
         elif tag == "after_offer":
@@ -1136,53 +1191,89 @@ async def go_intro(update, context):
     bot = context.bot
     await send_circle(bot, uid, "circle_intro")
     await pause_after_circle(bot, uid)
-    # Мост: "вот к чему приходят, когда механика отлажена"
-    await send_text(bot, uid, TXT["after_circle_intro"])
-    # СРАЗУ скрины с большими цифрами — чтобы $750 в видео ниже
-    # воспринимались как начало пути, а не как «потолок».
-    await send_proofs(bot, uid, PROOFS_AFTER_V1, TXT["proofs_v1_caption"])
-    await pause_text(bot, uid, text=TXT["proofs_v1_caption"])
-    await send_step(bot, uid, TXT["before_v1"],
-                    [(BTN["to_v1"], "go_v1", False)], skip_pause=True)
+    await send_step(bot, uid, TXT["after_circle_intro"],
+                    [(BTN["v1_watch"], "go_v1_prep", False)], skip_pause=True)
     set_step(uid, "intro")
 
 
-async def go_v1(update, context):
+async def go_v1_prep(update, context):
+    """Кнопка после кружка — текст перед видео 1."""
+    uid = update.effective_user.id
+    bot = context.bot
+    await send_step(bot, uid, TXT["before_v1"],
+                    [(BTN["v1_watch"], "go_v1_play", False)], skip_pause=True)
+
+
+async def go_v1_play(update, context):
+    """Видео 1 → кнопка к разбору скринов."""
     uid = update.effective_user.id
     bot = context.bot
     await send_media_file(bot, uid, "video_1")
-    await pause_after_video(bot, uid)
-    # Скрины уже показаны ДО видео — здесь сразу к выводу про Игоря.
-    await send_step(bot, uid, TXT["after_v1"],
-                    [(BTN["to_v2"], "go_v2", False)], skip_pause=True)
+    await pause_after_video(bot, uid, "video_1")
+    await send_step(bot, uid, TXT["after_v1_video"],
+                    [(BTN["v1_proofs"], "go_v1_proofs", False)], skip_pause=True)
     set_step(uid, "v1")
     schedule_drip(context.application, uid, "after_v1", DRIP_HOURS["after_v1"])
 
 
-async def go_v2(update, context):
+async def go_v1_proofs(update, context):
+    """Скрины после видео 1 → мост к видео 2."""
+    uid = update.effective_user.id
+    bot = context.bot
+    await send_proofs(bot, uid, PROOFS_AFTER_V1, TXT["proofs_v1_caption"])
+    await send_step(bot, uid, TXT["after_v1_proofs"],
+                    [(BTN["to_v2"], "go_v2_prep", False)], skip_pause=True)
+
+
+async def go_v2_prep(update, context):
     uid = update.effective_user.id
     bot = context.bot
     cancel_drips(context.application, uid)
-    await send_text(bot, uid, TXT["bridge_v2"])
+    await send_step(bot, uid, TXT["bridge_v2"],
+                    [(BTN["v2_watch"], "go_v2_video", False)], skip_pause=True)
+
+
+async def go_v2_video(update, context):
+    uid = update.effective_user.id
+    bot = context.bot
     await send_media_file(bot, uid, "video_2")
-    await pause_after_video(bot, uid)
-    await send_proofs(bot, uid, PROOFS_AFTER_V2, TXT["proofs_v2_caption"])
-    await pause_text(bot, uid)
-    await send_step(bot, uid, TXT["after_v2"],
-                    [(BTN["to_v3"], "go_v3", False)], skip_pause=True)
+    await pause_after_video(bot, uid, "video_2")
+    await send_step(bot, uid, TXT["after_v2_video"],
+                    [(BTN["v2_proofs"], "go_v2_proofs", False)], skip_pause=True)
     set_step(uid, "v2")
 
 
-async def go_v3(update, context):
+async def go_v2_proofs(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await send_text(bot, uid, TXT["bridge_v3"])
+    await send_proofs(bot, uid, PROOFS_AFTER_V2, TXT["proofs_v2_caption"])
+    await send_step(bot, uid, TXT["after_v2"],
+                    [(BTN["to_v3"], "go_v3_prep", False)], skip_pause=True)
+
+
+async def go_v3_prep(update, context):
+    uid = update.effective_user.id
+    bot = context.bot
+    await send_step(bot, uid, TXT["bridge_v3"],
+                    [(BTN["v3_watch"], "go_v3_video", False)], skip_pause=True)
+
+
+async def go_v3_video(update, context):
+    uid = update.effective_user.id
+    bot = context.bot
     await send_media_file(bot, uid, "video_3")
-    await pause_after_video(bot, uid)
-    await send_step(bot, uid, TXT["after_v3"],
-                    [(BTN["to_fork"], "go_fork", False)], skip_pause=True)
+    await pause_after_video(bot, uid, "video_3")
+    await send_step(bot, uid, TXT["after_v3_video"],
+                    [(BTN["to_fork"], "go_v3_after", False)], skip_pause=True)
     set_step(uid, "v3")
     schedule_drip(context.application, uid, "after_v3", DRIP_HOURS["after_v3"])
+
+
+async def go_v3_after(update, context):
+    uid = update.effective_user.id
+    bot = context.bot
+    await send_step(bot, uid, TXT["after_v3"],
+                    [(BTN["to_fork"], "go_fork", False)], skip_pause=True)
 
 
 async def go_fork(update, context):
@@ -1200,17 +1291,39 @@ async def go_offer(update, context):
     uid = update.effective_user.id
     bot = context.bot
     cancel_drips(context.application, uid)
-    await send_text(bot, uid, TXT["offer_text"])
-    await send_step(bot, uid, TXT["offer_app_bridge"], [programs_btn()])
-    await send_text(bot, uid, TXT["offer_gift"])
+    await send_step(bot, uid, TXT["offer_text"],
+                    [(BTN["offer_next"], "go_offer_formats", False)],
+                    skip_pause=True)
+    set_step(uid, "offer")
+    schedule_drip(context.application, uid, "after_offer",
+                  DRIP_HOURS["after_offer"])
+
+
+async def go_offer_formats(update, context):
+    uid = update.effective_user.id
+    bot = context.bot
+    await send_step(bot, uid, TXT["offer_app_bridge"], [
+        programs_btn(),
+        (BTN["offer_gift_next"], "go_offer_gift", False),
+    ], skip_pause=True)
+
+
+async def go_offer_gift(update, context):
+    uid = update.effective_user.id
+    bot = context.bot
+    await send_step(bot, uid, TXT["offer_gift"],
+                    [(BTN["offer_gift_next"], "go_offer_final", False)],
+                    skip_pause=True)
+
+
+async def go_offer_final(update, context):
+    uid = update.effective_user.id
+    bot = context.bot
     await send_step(bot, uid, TXT["offer_risk"], [
         programs_btn(),
         (BTN["to_lead"], "go_lead", False),
         (BTN["lm_get"], "go_guide", False),
-    ])
-    set_step(uid, "offer")
-    schedule_drip(context.application, uid, "after_offer",
-                  DRIP_HOURS["after_offer"])
+    ], skip_pause=True)
 
 
 async def go_programs(update, context):
@@ -1308,19 +1421,28 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
     routes = {
-        "go_intro":    go_intro,
-        "go_v1":       go_v1,
-        "go_v2":       go_v2,
-        "go_v3":       go_v3,
-        "go_fork":     go_fork,
-        "go_offer":    go_offer,
-        "go_programs": go_programs,
-        "go_students": go_students,
-        "go_lead":     go_lead,
-        "go_guide":    go_guide,
-        "lm_want":     lm_want,
-        "lm_skip":     lm_skip,
-        "lm_check":    lm_check,
+        "go_intro":         go_intro,
+        "go_v1_prep":       go_v1_prep,
+        "go_v1_play":       go_v1_play,
+        "go_v1_proofs":     go_v1_proofs,
+        "go_v2_prep":       go_v2_prep,
+        "go_v2_video":      go_v2_video,
+        "go_v2_proofs":     go_v2_proofs,
+        "go_v3_prep":       go_v3_prep,
+        "go_v3_video":      go_v3_video,
+        "go_v3_after":      go_v3_after,
+        "go_fork":          go_fork,
+        "go_offer":         go_offer,
+        "go_offer_formats": go_offer_formats,
+        "go_offer_gift":    go_offer_gift,
+        "go_offer_final":   go_offer_final,
+        "go_programs":      go_programs,
+        "go_students":      go_students,
+        "go_lead":          go_lead,
+        "go_guide":         go_guide,
+        "lm_want":          lm_want,
+        "lm_skip":          lm_skip,
+        "lm_check":         lm_check,
     }
     if d in routes:
         await routes[d](update, context)
