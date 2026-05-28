@@ -58,9 +58,9 @@ SITE_LINK = os.getenv("SITE_LINK", "").strip() or "https://vadjik.com/"
 RESULTS_LINK = os.getenv("RESULTS_URL", "").strip() or "https://vadjik.com/results"
 
 # Подписи нижнего меню (Reply Keyboard) — должны совпадать с кнопками.
-MENU_FORMATS = "Форматы сотрудничества и обучения"
-MENU_RESULTS = "Результаты учеников"
-MENU_GUIDE = "Забрать гайд"
+MENU_FORMATS = "💎 Форматы сотрудничества и обучения"
+MENU_RESULTS = "📈 Результаты учеников"
+MENU_GUIDE = "📘 Забрать гайд"
 
 # Ссылка на Telegram Mini App (витрина тарифов + результатов).
 # Это HTTPS-адрес, где захостен mini_app/index.html (см. MINI_APP.md).
@@ -360,7 +360,9 @@ TXT = {
         "— неправильный расчёт прибыли.\n\n"
         "Поэтому я сделал формат, где можно идти по шагам, с проверками "
         "и поддержкой.\n\n"
-        "Разделы — в меню внизу 👇"
+        "Разделы — в меню внизу 👇\n\n"
+        "🔥🔥 Кстати, зайдите в «Форматы сотрудничества и обучения» — "
+        "для вас там супер-бонус! 🔥🔥"
     ),
     "after_fork_menu_hint": (
         "Всё подробно — в меню внизу 👇\n\n"
@@ -498,7 +500,8 @@ TXT = {
     ),
 }
 
-# Напоминания о PDF-гайде в воронке (2 варианта, ротация).
+# Напоминания о PDF-гайде в воронке (ротация, до GUIDE_TEASER_MAX раз).
+GUIDE_TEASER_MAX = 5
 GUIDE_TEASERS = [
     (
         "Некоторые ошибки на Amazon стоят очень дорого. В конце вы получите "
@@ -507,6 +510,10 @@ GUIDE_TEASERS = [
     (
         "3 ошибки амазонщика — для кого-то это десятки тысяч долларов. "
         "Для вас в конце пути — бесплатно."
+    ),
+    (
+        "🎁 Напоминаю: после воронки — бесплатный PDF «3 ошибки новичка». "
+        "Что проверить до первой закупки, чтобы не слить бюджет на старте."
     ),
 ]
 
@@ -637,11 +644,11 @@ def append_guide_teaser(uid, text):
     if step in ("lead", "qualified", "qualified_cold", "fork", "offer"):
         return text
     i = rec.get("guide_teaser_i", 0)
-    if i >= len(GUIDE_TEASERS):
+    if i >= GUIDE_TEASER_MAX:
         return text
     rec["guide_teaser_i"] = i + 1
     save_state(STATE)
-    return f"{text}\n\n{GUIDE_TEASERS[i]}"
+    return f"{text}\n\n{GUIDE_TEASERS[i % len(GUIDE_TEASERS)]}"
 
 
 async def send_step(bot, uid, text, rows=None, skip_pause=False,
@@ -1358,7 +1365,9 @@ async def drip_fire(context: ContextTypes.DEFAULT_TYPE):
             await send_step(bot, uid, TXT["drip_after_v1"],
                             [(BTN["to_v2"], "go_v2_prep", False)])
         elif tag == "after_v3":
-            await send_step(bot, uid, TXT["drip_after_v3"], [(BTN["to_fork"], "go_fork", False)])
+            await send_step(bot, uid, TXT["drip_after_v3"],
+                            [(BTN["to_fork"], "go_fork", False)],
+                            guide_teaser=True)
         elif tag == "after_offer":
             await send_with_main_menu(bot, uid, TXT["drip_after_offer"])
             await send_step(
@@ -1485,7 +1494,8 @@ async def go_v3_after(update, context):
     uid = update.effective_user.id
     bot = context.bot
     await send_step(bot, uid, TXT["after_v3"],
-                    [(BTN["to_fork"], "go_fork", False)], skip_pause=True)
+                    [(BTN["to_fork"], "go_fork", False)],
+                    skip_pause=True, guide_teaser=True)
 
 
 async def go_fork(update, context):
