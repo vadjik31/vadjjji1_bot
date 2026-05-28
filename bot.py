@@ -11,12 +11,15 @@ Amazon-воронка: Telegram-бот.  Боевая сборка для @vadji
 ╚══════════════════════════════════════════════════════════════════════╝
 """
 
+import hashlib
+import hmac
 import json
 import logging
 import os
+import time
 from datetime import datetime
 
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto,
     WebAppInfo,
@@ -55,6 +58,30 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip()
 
 
 # ──────────────────────────────────────────────────────────────────────
+# ПРОМО-СКИДКА (персональная ссылка со скидкой + таймер, синхрон с сайтом).
+#
+#   PROMO_SECRET   — ОБЩИЙ секрет с сайтом. Должен совпадать байт-в-байт.
+#                    Задаётся ТОЛЬКО через переменную окружения.
+#   DISCOUNT_URL   — страница скидок на сайте.
+#   PROMO_HOURS    — на сколько часов даётся персональная скидка.
+#
+#   Бонус к скидке — личный созвон с Вадимом (текст в TXT["promo_*"]).
+#   Промо выдаётся ТЁПЛЫМ и ГОРЯЧИМ после квиза (не холодным).
+# ──────────────────────────────────────────────────────────────────────
+
+PROMO_SECRET = os.getenv("PROMO_SECRET", "").strip()
+DISCOUNT_URL = os.getenv("DISCOUNT_URL", "").strip() or "https://vadjik.com/faster_discount"
+PROMO_HOURS  = int(os.getenv("PROMO_HOURS", "24") or "24")
+# Процент скидки — ТОЛЬКО для показа в Mini App (зачёркнутая цена → новая).
+# ⚠️ Должен совпадать со скидкой, которую ты выставил на сайте, иначе
+# в аппе человек увидит одну цену, а на сайте другую.
+PROMO_DISCOUNT = int(os.getenv("PROMO_DISCOUNT", "20") or "20")
+# Процент скидки — ТОЛЬКО для показа в Mini App (зачёркнутая цена → новая).
+# Должен совпадать со скидкой, которую ты выставил на сайте в админке!
+PROMO_DISCOUNT = int(os.getenv("PROMO_DISCOUNT", "20") or "20")
+
+
+# ──────────────────────────────────────────────────────────────────────
 # 2) ЛИД-МАГНИТ (подписка на канал в обмен на гайд).
 #
 #    CHANNEL_USERNAME — публичный @username твоего канала.
@@ -86,30 +113,30 @@ MEDIA = {
 
     # КРУЖОК «КТО Я» (58 сек) — после /start.
     "circle_intro":  {
-        "file_id": "DQACAgIAAxkBAAFKzAdqFyStU7gV6l0pGGGAAhWYjnYljQACWZkAAkGloEiiEfuL4azkRTsE",
+        "file_id": "DQACAgIAAxkBAAMfahhQbWjfCilhcGCa5i6O7rDJJTcAAlqaAAJBpahI4aN9dQb-NTs7BA",
     },
 
     # ВИДЕО 1 — кейс про Игоря и $750.
     "video_1":       {
-        "file_id": "BQACAgIAAxkBAAFKzENqFycwLExX8ZHgxFguDHQQkUE8FQACNawAAhyisEs4n-Kxr_JWDzsE",
+        "file_id": "BQACAgIAAxkBAAMjahha-z4qjKU5N0vdaA2BpkP991oAAh2ZAAKUislIlXFwBBtVE3Y7BA",
         "kind": "document",
     },
 
     # ВИДЕО 2 — как работает механика.
     "video_2":       {
-        "file_id": "BQACAgIAAxkBAAFKzFNqFygSOGbm-sL8eKcVrMhQLJvmSQACy6EAAhx_uEjFH5jE4gKh4TsE",
+        "file_id": "BQACAgIAAxkBAAMbahhQRlHSqn8kmwABaqjx-J74TjOjAALHoQACHH-4SDBaQh9qb6shOwQ",
         "kind": "document",
     },
 
     # ВИДЕО 3 — кому НЕ стоит.
     "video_3":       {
-        "file_id": "BQACAgIAAxkBAAFKzEhqFyeNaAvqb01pjfBfviHTPQQRMgACx6EAAhx_uEh7lyH6ZsTeXzsE",
+        "file_id": "BQACAgIAAxkBAAMdahhQWH8nZmU6aCjyKcSi87oVqCYAAsuhAAIcf7hI4NDb87GMAgs7BA",
         "kind": "document",
     },
 
     # КРУЖОК-РАЗВИЛКА (47 сек) — после видео 3, мост к офферу.
     "circle_fork":   {
-        "file_id": "DQACAgIAAxkBAAFKzAVqFySUkfDwTwx7KrtI4tYmZe9fSwACWpoAAkGlqEgKegxUI1KocTsE",
+        "file_id": "DQACAgIAAxkBAAMhahhQfhCycqexkKysYDi_MMFQ4WwAAlmZAAJBpaBIUqucIOryZbc7BA",
     },
 }
 
@@ -168,184 +195,244 @@ DRIP_HOURS = {
 
 TXT = {
     "start": (
-        "Вы здесь, потому что вам интересен Amazon — как там реально "
-        "зарабатывают, сколько нужно вложить и стоит ли оно того.\n\n"
-        "Я не буду грузить вас теорией. Покажу 3 коротких видео:\n"
-        "— реальный кейс человека, который начал с нуля;\n"
-        "— как именно работает эта модель по шагам;\n"
-        "— и честно — кому этим заниматься НЕ стоит.\n\n"
-        "Всего минут 15. После этого вы сами поймёте, ваше это или нет. "
-        "Без давления."
+        "Привет 👋\n\n"
+        "Раз вы здесь — значит, Amazon вам как минимум интересен. И это "
+        "правильно: тема живая, на ней реально зарабатывают. Но вокруг "
+        "столько шума и обещаний «миллион за неделю», что понять, где "
+        "правда, а где развод, почти нереально.\n\n"
+        "Давайте я без воды покажу, как всё на самом деле. Подготовил для "
+        "вас три коротких видео:\n\n"
+        "🎬 живой кейс — человек, который начал с нуля\n"
+        "⚙️ как эта модель работает по шагам\n"
+        "🙅‍♂️ и честно — кому за это лучше вообще не браться\n\n"
+        "Всего минут 15. Никакого «купи сейчас», обещаю. Просто "
+        "посмотрите — и сами почувствуете, ваше это или нет. Идёт?"
     ),
     "after_circle_intro": (
-        "Дальше — тот самый кейс. Парень, компания и $1000 на старте. "
-        "Что из этого вышло — в видео."
+        "Ну вот, теперь вы хотя бы знаете, кто с вами говорит 🙂\n\n"
+        "А дальше — тот самый кейс, с которого многие загораются. Парень, "
+        "компания и $1000 на старте. Что из этого вышло — смотрите сами."
     ),
     "before_v1": (
-        "Здесь важна не сумма. Важно, ЧТО он сделал и в каком порядке — "
-        "это можно повторить. Смотрите внимательно на момент с возвратами, "
-        "многие на этом сыпятся."
+        "Только сразу совет: смотрите не на сумму, а на то, ЧТО он делал "
+        "и в каком порядке. Вот это и есть то, что можно повторить.\n\n"
+        "И обратите внимание на момент с возвратами — именно там "
+        "большинство новичков спотыкается. 👇"
     ),
     "proofs_v1_caption": (
-        "Это аккуратный старт новичка. А вот к чему приходят, когда "
-        "механика отлажена.\n\n"
-        "Разные люди, разные страны, разные суммы. Результат зависит от "
-        "того, сколько человек вложил в навык — гарантий тут нет ни у кого. "
-        "Но механика у всех одна."
+        "Это, кстати, ещё аккуратный старт новичка. А вот к чему люди "
+        "приходят, когда механика уже отлажена 👇\n\n"
+        "Разные люди, разные страны, разные суммы. Скажу честно: результат "
+        "у всех свой и зависит от того, сколько человек вложил сил и "
+        "времени — волшебной кнопки нет. Но сама механика у всех одна и "
+        "та же."
     ),
     "after_v1": (
-        "Понятно, кейс есть. Но КАК это работает технически — дальше."
+        "Кейс — это хорошо, вдохновляет. Но вы наверняка думаете: «ок, а "
+        "как это вообще работает-то?» 🤔\n\n"
+        "Давайте разберём по шагам — следующее видео как раз об этом."
     ),
     "bridge_v2": (
-        "В кейсе вы видели результат. Сейчас разберём саму механику — "
-        "почему Amazon вообще позволяет так делать и где здесь ваше место."
+        "В первом видео вы видели результат. А теперь — сама кухня: "
+        "почему Amazon вообще позволяет так зарабатывать и где в этой "
+        "схеме ваше место. Без этого всё остальное — просто красивые "
+        "цифры. 👇"
     ),
     "proofs_v2_caption": (
-        "В видео это мелькнуло быстро, поэтому отдельно — это не только США."
+        "И чтобы два раза не вставать — это далеко не только США. Вот "
+        "ребята из других стран 👇"
     ),
-    "after_v2": "Теперь самое честное.",
+    "after_v2": (
+        "Ну а теперь — самое честное видео из трёх. Возможно, самое "
+        "важное для вас."
+    ),
     "bridge_v3": (
-        "Это видео отговорит часть людей — и хорошо. Я не хочу, чтобы вы "
-        "тратили деньги, если это не ваше. Но если после него вы всё ещё "
-        "в деле — значит, разговор серьёзный."
+        "Сразу предупрежу: это видео часть людей отговорит. И это "
+        "нормально — я правда не хочу, чтобы вы вкладывали деньги, если "
+        "это не ваше.\n\n"
+        "Но если после него вы всё равно скажете «хочу» — значит, у нас "
+        "с вами серьёзный разговор. 👇"
     ),
     "after_v3": (
-        "Если вы досмотрели до конца — это уже о многом говорит. "
-        "Большинство закрывает на первой минуте.\n\n"
-        "Теперь у вас на руках вся базовая картина: вы знаете, как "
-        "работает модель, видели реальный результат и понимаете, кому "
-        "это не подходит.\n\n"
-        "Дальше развилка. О ней — на минуту ниже."
+        "Досмотрели до конца? Снимаю шляпу 🙌 — честно, большинство "
+        "закрывает на первой минуте.\n\n"
+        "Раз вы здесь, у вас теперь есть полная картина: как работает "
+        "модель, какой бывает результат и кому это не подходит. Уже "
+        "больше, чем знает 90% тех, кто «думает про Amazon».\n\n"
+        "Остался последний момент — самый важный. Буквально минута 👇"
     ),
     "after_fork_circle": (
-        "Никаких автоматических списаний и продаж в три клика. Следующий "
-        "шаг — короткая анкета и 30-минутный разбор по видеосвязи. "
-        "На разборе смотрим вашу ситуацию, я говорю — подходит вам это "
-        "или нет. Дальше решаете вы."
+        "Если коротко — никаких «оплати в три клика и разбирайся сам». "
+        "Так это не работает, и я так не делаю.\n\n"
+        "Дальше всё по-человечески: короткая анкета (3 вопроса) и живой "
+        "разбор со мной по видеосвязи, минут на 30. Посмотрю вашу "
+        "ситуацию и честно скажу — стоит вам в это идти или нет. А "
+        "решать уже будете вы, спокойно и без давления."
     ),
     "offer_text": (
-        "Что вы получаете — коротко:\n"
-        "— Поиск поставщиков и прохождение верификации\n"
-        "— Поиск прибыльных товаров и расчёт юнит-экономики\n"
-        "— Первая отправка без ошибок, которые банят аккаунт\n"
-        "— Сопровождение и разборы\n\n"
-        "Это не «курс из видео». Это доведение вас до первых рабочих "
-        "отправок."
-    ),
-    # Подарок — бонусные продукты, входят в любой тариф
-    "offer_gift": (
-        "🎁 И сразу подарок: в любой тариф входят 5 бонусных продуктов "
-        "на ~$1750 — ангейтинг, поиск поставщиков, ASIN Checker, "
-        "репрайсер и поставщик+инвойс. Бесплатно.\n\n"
-        "Нажмите «Что входит в обучение» — там все программы, что в них "
-        "входит, и 19 результатов учеников с реальными цифрами."
-    ),
-    # Текстовый fallback, если Mini App не настроен (WEBAPP_URL пуст)
-    "programs_text": (
-        "Программы обучения:\n\n"
-        "1️⃣ Обучаюсь сам — $700\n"
-        "   75 видео-уроков, софты, записи 9 созвонов, доступ навсегда.\n\n"
-        "2️⃣ Поток — $830\n"
-        "   Всё выше + 9 групповых и 2 личных созвона, 1 поставщик, "
-        "поддержка 24/7. Roadmap 9 недель до продаж.\n\n"
-        "3️⃣ Продвинутый — $1500  ⭐ популярный\n"
-        "   Всё выше + 4 личных созвона, 3 поставщика, выбор рынка "
-        "США/ЕС, 4 месяца поддержки.\n\n"
-        "4️⃣ Про уровень — $5800  💎 VIP\n"
-        "   Бизнес под ключ: 12 личных созвонов, 10 поставщиков + "
-        "50 товаров, сайт + CRM, 6 месяцев поддержки. Цель $15K+/мес.\n\n"
-        "🎁 В каждый тариф входят бонусы на ~$1750.\n\n"
-        "Какой подойдёт именно вам — разберём на созвоне."
+        "Коротко, что вы получаете на обучении:\n\n"
+        "✅ выходим на поставщиков и проходим их проверку\n"
+        "✅ ищем прибыльные товары и считаем, чтобы вы не ушли в минус\n"
+        "✅ делаем первую отправку без ошибок, за которые банят аккаунт\n"
+        "✅ и я рядом — сопровождаю и разбираю ваши вопросы\n\n"
+        "Это не «папка с видео, дальше сам». Это про то, чтобы довести "
+        "вас до первых реальных отправок и продаж."
     ),
     "offer_price_and_call": (
-        "Сколько это стоит. Программа — в диапазоне [X–Y]. Финальная "
-        "цифра зависит от формата: групповой поток или индивидуальное "
-        "сопровождение. Точную сумму обсуждаем на разборе, после того "
-        "как я посмотрю вашу ситуацию.\n\n"
-        "Что будет на разборе (30 минут, по видеосвязи):\n"
-        "— Вы рассказываете, где сейчас: бюджет, время, опыт\n"
-        "— Я говорю честно, подходит ли вам Amazon\n"
-        "— Если подходит — показываю, как именно сделаем\n"
-        "— Если не подходит — говорю, что делать вместо этого\n\n"
-        "Никакого давления. Если после разбора надо подумать — "
-        "думайте сколько надо."
+        "Теперь про деньги — без увиливаний. Обучение стоит в диапазоне "
+        "[X–Y], а финальная цифра зависит от формата: пойдёте в группе "
+        "или возьмёте индивидуальное сопровождение. Точную сумму назову "
+        "на разборе, когда увижу вашу ситуацию — так честнее.\n\n"
+        "Сам разбор — это 30 минут по видео, и вот что там будет:\n\n"
+        "👉 вы рассказываете, где сейчас: бюджет, время, опыт\n"
+        "👉 я честно говорю, подходит вам Amazon или нет\n"
+        "👉 если да — показываю, как именно мы это сделаем\n"
+        "👉 если нет — подскажу, чем заняться вместо этого\n\n"
+        "И никакого втюхивания. Надо подумать после разбора — думайте "
+        "сколько нужно, я не из тех, кто давит."
     ),
     "offer_risk": (
-        "Когда оформляемся — по договору. Гарантия: [впиши свою "
-        "формулировку]. Все вопросы — на разборе."
+        "Работаем по договору — всё по-взрослому. Гарантия: [впиши свою "
+        "формулировку]. Остальные вопросы спокойно обсудим на разборе."
+    ),
+    "offer_gift": (
+        "🎁 И сразу приятное: в любой тариф я кладу 5 бонусных "
+        "инструментов на ~$1839 — помощь с закрытыми брендами, поиск "
+        "товаров и поставщиков, программу проверки товаров и автонастройку "
+        "цены. Просто в подарок, сверху.\n\n"
+        "Нажмите «Что входит в обучение» 👇 — там все программы простым "
+        "языком, 19 реальных результатов учеников и словарик, если "
+        "какое-то слово непонятно."
+    ),
+    "programs_text": (
+        "Вот мои программы — от «разберусь сам» до «сделаем вместе под "
+        "ключ» 👇\n\n"
+        "1️⃣ Обучаюсь сам — $671\n"
+        "75 видео-уроков, программы-помощники, записи 9 онлайн-встреч, "
+        "доступ навсегда. Без личных созвонов — двигаетесь сами.\n\n"
+        "2️⃣ Поток — $975\n"
+        "Всё из первого + 9 онлайн-встреч в группе и 2 личных созвона, "
+        "1 проверенный поставщик и поддержка 24/7. Доводим до первых "
+        "продаж.\n\n"
+        "3️⃣ Продвинутый — $1455 ⭐ (берут чаще всего)\n"
+        "Всё из второго + 4 личных созвона, 3 поставщика, выбор рынка "
+        "(США или Европа), 4 месяца поддержки.\n\n"
+        "4️⃣ Про уровень — $4200 💎 VIP\n"
+        "Бизнес под ключ: 12 личных созвонов, 10 поставщиков и помощь с "
+        "50 товарами, личный сайт + CRM, 6 месяцев поддержки. Цель — "
+        "$15 000+ продаж в месяц.\n\n"
+        "🎁 И в каждый тариф входят бонусы на ~$1839.\n\n"
+        "Какой подойдёт именно вам — это и разберём на созвоне, не "
+        "переживайте, помогу выбрать."
     ),
     "students_caption": (
-        "Ученики из США, Франции, Германии, Италии и Канады. У каждого "
-        "свой темп и свой формат — но механика везде одна."
+        "Вот ребята из США, Франции, Германии, Италии, Канады 👇 У "
+        "каждого свой темп и свой путь — но механика, по которой они "
+        "пришли к этому, одна."
     ),
     "site_caption": (
-        "Это не все — на сайте больше результатов, отзывы и подробности. "
-        "Загляните если интересно."
+        "И это далеко не все — на сайте результатов гораздо больше, плюс "
+        "отзывы и подробности. Загляните, если интересно 👇"
     ),
-    "back_to_offer": "Готовы записаться на разбор?",
+    "back_to_offer": "Ну что, готовы записаться на разбор? 🙂",
 
-    "q1": "Сколько готовы вложить в товар на старте?",
+    "q1": "Окей, давайте знакомиться ближе. Сколько готовы вложить в товар на старте?",
     "q1_opts": ["до $300", "$300–1000", "$1000+", "Пока не готов"],
-    "q2": "Сколько времени в день реально есть?",
+    "q2": "Понял. А сколько времени в день реально сможете уделять?",
     "q2_opts": ["меньше часа", "1–2 часа", "2+ часа"],
-    "q3": "Когда хотите начать?",
+    "q3": "И последнее — когда хотите начать?",
     "q3_opts": ["сейчас", "в течение месяца", "просто изучаю"],
 
     "after_quiz": (
-        "Спасибо. Я свяжусь с вами лично в ближайшее время. Если удобнее "
-        "написать сразу — кнопка ниже."
+        "Отлично, спасибо! 🙌 Я посмотрю ваши ответы и свяжусь с вами "
+        "лично. Если не хочется ждать — можете написать мне прямо сейчас, "
+        "кнопка ниже 👇"
     ),
-    # Финал для холодных лидов (просто изучаю / пока не готов)
     "cold_finish": (
-        "Понял вас — спешить некуда, это нормально. Раз вы пока "
-        "присматриваетесь, у меня есть кое-что полезное на это время."
+        "Понимаю вас — спешить тут некуда, и это абсолютно нормально 🙂 "
+        "Раз пока присматриваетесь, у меня есть кое-что полезное, чтобы "
+        "это время не прошло зря."
     ),
 
     "drip_after_v1": (
-        "Вы остановились на кейсе. Самое важное — механика — в следующем "
-        "видео, это 5 минут."
+        "Вы остановились на кейсе 🙂 А ведь дальше — самое интересное: "
+        "как это работает на самом деле. Это всего 5 минут, и многое "
+        "встанет на места 👇"
     ),
     "drip_after_v3": (
-        "Вы досмотрели почти всё. Остался один шаг — что с этим делать "
-        "дальше."
+        "Вы почти у финиша 🙌 Остался один короткий шаг — что со всем "
+        "этим делать дальше. Глянете?"
     ),
     "drip_after_offer": (
-        "Видимо, что-то остановило — возможно, неудобный момент или "
-        "остались вопросы. Если хотите спросить лично — напишите мне "
-        "прямо сейчас. Или можете записаться на разбор. А если пока "
-        "просто изучаете — заберите бесплатный гайд ниже."
+        "Заметил, что вы посмотрели предложение, но пока не написали 🙂 "
+        "Это вообще без проблем!\n\n"
+        "Если что-то останавливает или есть вопрос — просто напишите мне "
+        "лично, отвечу по-человечески. Или сразу запишитесь на разбор. А "
+        "если пока только изучаете — заберите бесплатный гайд ниже 👇"
     ),
     "drip_after_lead": (
-        "Вы оставили заявку, я свяжусь. Если удобнее написать самому — "
-        "вот контакт:"
+        "Вы оставили заявку — я на связи 🙌 Если удобнее самим написать, "
+        "вот мой прямой контакт 👇"
     ),
 
-    # ── ЛИД-МАГНИТ ──
     "lm_offer": (
-        "Хотите забрать топ-3 ошибки Amazon-продавца, из-за которых "
-        "чаще всего теряют деньги? Бесплатно, 1 шаг."
+        "Хотите, подарю кое-что полезное? 🎁\n\n"
+        "У меня есть разбор топ-3 ошибок Amazon-продавца — из-за них чаще "
+        "всего теряют деньги на старте. Отдаю бесплатно, нужен всего "
+        "1 шаг."
     ),
     "lm_subscribe": (
-        "Супер. Всё, что нужно — подписаться на мой канал. Как только "
-        "подпишетесь и нажмёте кнопку ниже, гайд придёт сюда автоматически."
+        "Супер! 🙌 Всё, что нужно — подписаться на мой канал. Как только "
+        "подпишетесь и нажмёте кнопку ниже, гайд сразу прилетит вам сюда."
     ),
     "lm_not_subscribed": (
-        "Пока не вижу подписки. Подпишитесь на канал по кнопке выше и "
-        "нажмите «Я подписался» ещё раз."
+        "Хм, пока не вижу вашу подписку 🤔 Загляните в канал по кнопке "
+        "выше и нажмите «Я подписался» ещё разок."
     ),
     "lm_delivered": (
-        "Держите. Внутри — 3 ошибки, на которых чаще всего сливают "
-        "деньги новички, и как их не допустить.\n\n"
-        "Когда прочитаете — если захотите разобрать свою ситуацию лично, "
-        "вот разбор:"
+        "Лови! 🎁 Внутри — 3 ошибки, на которых чаще всего сливают "
+        "деньги, и как их обойти.\n\n"
+        "Прочитаете — и если захотите разобрать уже конкретно вашу "
+        "ситуацию, я всегда на связи 👇"
     ),
     "lm_skip": (
-        "Хорошо. Если передумаете — гайд всегда можно забрать позже. "
-        "А если будут вопросы — пишите лично:"
+        "Без проблем 🙂 Передумаете — гайд всегда можно забрать позже. А "
+        "будут вопросы — просто пишите, помогу 👇"
     ),
     "lm_error": (
-        "Не получилось проверить подписку — возможно, канал ещё "
-        "настраивается. Напишите мне лично, и я пришлю гайд вручную:"
+        "Что-то не получилось проверить подписку — возможно, канал ещё "
+        "настраивается. Напишите мне лично, и я пришлю гайд руками 👇"
+    ),
+
+    "promo_hot": (
+        "🔥 А вот теперь — лично для вас.\n\n"
+        "Раз вы настроены серьёзно и готовы стартовать, я дам вам на "
+        "24 часа скидку на обучение, а сверху — личный созвон со мной, "
+        "где разберём именно вашу ситуацию.\n\n"
+        "Цены уже пересчитаны, и идёт таймер — всё по кнопке ниже 👇 "
+        "Через {hours} часа предложение закроется, и это честно, без "
+        "«ой, продлили»."
+    ),
+    "promo_warm": (
+        "Раз вам это откликается — держите персональное предложение 🙂\n\n"
+        "На 24 часа: скидка на обучение + личный созвон со мной в "
+        "подарок, разберём вашу ситуацию вживую.\n\n"
+        "Цены со скидкой и таймер — по кнопке ниже 👇 Через {hours} часа "
+        "предложение закроется."
+    ),
+    "promo_pinned": (
+        "⏳ Ваша скидка + личный созвон в подарок активны.\n"
+        "Осталось: {left}\n\n"
+        "Оформить — кнопка в сообщении выше 👆"
+    ),
+    "promo_expired": (
+        "⌛ Время персональной скидки вышло. Но вы всё равно можете "
+        "записаться на разбор — просто напишите мне, и придумаем, как "
+        "вам помочь 🙂"
+    ),
+    "promo_drip": (
+        "Напоминаю по-доброму 🙂 ваша скидка и личный созвон в подарок "
+        "ещё в силе, но скоро закроются. Успеете — кнопка ниже 👇"
     ),
 }
 
@@ -372,6 +459,9 @@ BTN = {
     "lm_skip":    "Пропустить",
     "lm_goto":    "Перейти в канал",
     "lm_check":   "Я подписался ✅",
+    # промо
+    "promo_get":  "🔥 Забрать скидку + созвон",
+    "promo_app":  "💎 Программы со скидкой",
 }
 
 
@@ -454,12 +544,84 @@ def kb(rows):
     return InlineKeyboardMarkup(buttons)
 
 
+async def send_step(bot, uid, text, rows=None, **kwargs):
+    """Отправляет сообщение и гарантирует, что активные кнопки есть только
+    у ПОСЛЕДНЕГО сообщения. Перед отправкой снимает кнопки с предыдущего
+    сообщения, у которого они были, — чтобы из истории нельзя было
+    наклацать старых кнопок и сбить воронку."""
+    rec = u(uid)
+    prev_id = rec.get("last_kb_msg")
+    if prev_id:
+        try:
+            await bot.edit_message_reply_markup(uid, prev_id, reply_markup=None)
+        except Exception:
+            pass
+        rec["last_kb_msg"] = None
+    markup = kb(rows) if rows else None
+    msg = await bot.send_message(uid, text, reply_markup=markup, **kwargs)
+    if rows:
+        rec["last_kb_msg"] = msg.message_id
+        save_state(STATE)
+    return msg
+
+
 def webapp_url_full():
     """URL Mini App с подставленными ссылками contact/site."""
     if not WEBAPP_URL:
         return ""
     return (f"{WEBAPP_URL}?contact={quote(CALL_LINK, safe='')}"
             f"&site={quote(SITE_LINK, safe='')}")
+
+
+# ---------------- ПРОМО ----------------
+
+def promo_sig(uid, deadline):
+    """HMAC-SHA256 от '{uid}.{deadline}', hex lowercase — как ждёт сайт."""
+    msg = f"{uid}.{deadline}".encode("utf-8")
+    return hmac.new(PROMO_SECRET.encode("utf-8"), msg,
+                    hashlib.sha256).hexdigest()
+
+
+def build_discount_link(uid, deadline):
+    """Подписанная ссылка на скидочную страницу сайта."""
+    sig = promo_sig(uid, deadline)
+    qs = urlencode({"uid": uid, "deadline": deadline, "sig": sig})
+    return f"{DISCOUNT_URL}?{qs}"
+
+
+def webapp_promo_url(uid, deadline, discount_link):
+    """URL Mini App с проброшенным дедлайном — чтобы там тикал таймер."""
+    if not WEBAPP_URL:
+        return ""
+    sig = promo_sig(uid, deadline)
+    return (f"{WEBAPP_URL}?contact={quote(CALL_LINK, safe='')}"
+            f"&site={quote(SITE_LINK, safe='')}"
+            f"&uid={uid}&deadline={deadline}&sig={sig}"
+            f"&disc={PROMO_DISCOUNT}"
+            f"&discount={quote(discount_link, safe='')}")
+
+
+def lead_temperature(answers):
+    """hot / warm — по ответам квиза (cold обрабатывается отдельно)."""
+    budget = answers.get("q1", "")
+    is_big_budget = budget == "$1000+"
+    is_max_time = answers.get("q2", "") == "2+ часа"
+    is_now = answers.get("q3", "") == "сейчас"
+    if is_big_budget and is_max_time and is_now:
+        return "hot"
+    return "warm"
+
+
+def fmt_left(deadline):
+    """'Xч Yмин' до дедлайна, либо 'истекло'."""
+    left = int(deadline - time.time())
+    if left <= 0:
+        return "истекло"
+    h = left // 3600
+    m = (left % 3600) // 60
+    if h > 0:
+        return f"{h}ч {m}мин"
+    return f"{m}мин"
 
 
 def detect_kind(file_id: str) -> str:
@@ -568,34 +730,25 @@ async def is_subscribed(bot, user_id) -> bool:
 async def show_lead_magnet_offer(bot, chat_id, intro=None):
     """Показывает предложение лид-магнита с выбором Хочу/Пропустить."""
     text = (intro + "\n\n" if intro else "") + TXT["lm_offer"]
-    await bot.send_message(
-        chat_id, text,
-        reply_markup=kb([
-            (BTN["lm_want"], "lm_want", False),
-            (BTN["lm_skip"], "lm_skip", False),
-        ]),
-    )
+    await send_step(bot, chat_id, text, [
+        (BTN["lm_want"], "lm_want", False),
+        (BTN["lm_skip"], "lm_skip", False),
+    ])
 
 
 async def lm_want(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await bot.send_message(
-        uid, TXT["lm_subscribe"],
-        reply_markup=kb([
+    await send_step(bot, uid, TXT["lm_subscribe"], [
             (BTN["lm_goto"], CHANNEL_LINK, True),
             (BTN["lm_check"], "lm_check", False),
-        ]),
-    )
+        ])
 
 
 async def lm_skip(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await bot.send_message(
-        uid, TXT["lm_skip"],
-        reply_markup=kb([(BTN["contact"], CALL_LINK, True)]),
-    )
+    await send_step(bot, uid, TXT["lm_skip"], [(BTN["contact"], CALL_LINK, True)])
 
 
 async def lm_check(update, context):
@@ -605,20 +758,14 @@ async def lm_check(update, context):
 
     if sub is None:
         # не смогли проверить — отдадим контакт, не теряем человека
-        await bot.send_message(
-            uid, TXT["lm_error"],
-            reply_markup=kb([(BTN["contact"], CALL_LINK, True)]),
-        )
+        await send_step(bot, uid, TXT["lm_error"], [(BTN["contact"], CALL_LINK, True)])
         return
 
     if not sub:
-        await bot.send_message(
-            uid, TXT["lm_not_subscribed"],
-            reply_markup=kb([
+        await send_step(bot, uid, TXT["lm_not_subscribed"], [
                 (BTN["lm_goto"], CHANNEL_LINK, True),
                 (BTN["lm_check"], "lm_check", False),
-            ]),
-        )
+            ])
         return
 
     # подписан — выдаём гайд
@@ -626,10 +773,7 @@ async def lm_check(update, context):
     rec = u(uid)
     rec["got_guide"] = True
     save_state(STATE)
-    await bot.send_message(
-        uid, TXT["lm_delivered"],
-        reply_markup=kb([(BTN["to_lead"], "go_lead", False)]),
-    )
+    await send_step(bot, uid, TXT["lm_delivered"], [(BTN["to_lead"], "go_lead", False)])
 
 
 async def send_guide(bot, chat_id):
@@ -649,6 +793,106 @@ async def send_guide(bot, chat_id):
         )
     except Exception as e:
         log.error("send_guide failed: %s", e)
+
+
+# ---------------- ПОКАЗ ПРОМО ----------------
+
+async def show_promo(context, uid, user, temperature):
+    """Выдаёт персональную скидку: ссылка с подписью, закреп, таймер."""
+    bot = context.bot
+    rec = u(uid)
+
+    if not PROMO_SECRET:
+        # секрет не задан — не выдаём кривую ссылку, ведём на разбор
+        await send_step(bot, uid, TXT["after_quiz"], [(BTN["contact"], CALL_LINK, True)])
+        log.warning("PROMO_SECRET не задан — промо не выдано, отдан контакт")
+        return
+
+    deadline = int(time.time()) + PROMO_HOURS * 3600
+    link = build_discount_link(uid, deadline)
+
+    rec["promo"] = {
+        "issued_at": int(time.time()),
+        "deadline": deadline,
+        "link": link,
+        "temperature": temperature,
+    }
+    save_state(STATE)
+
+    intro = TXT["promo_hot"] if temperature == "hot" else TXT["promo_warm"]
+    intro = intro.format(hours=PROMO_HOURS)
+
+    # кнопки: оформить со скидкой, программы со скидкой (Mini App), контакт
+    rows = [(BTN["promo_get"], link, True)]
+    if WEBAPP_URL:
+        rows.append((BTN["promo_app"], webapp_promo_url(uid, deadline, link), "webapp"))
+    rows.append((BTN["contact"], CALL_LINK, True))
+
+    await send_step(bot, uid, intro, rows)
+
+    # закреплённое сообщение с таймером
+    try:
+        pin = await send_step(bot, uid, TXT["promo_pinned"].format(left=fmt_left(deadline)))
+        await bot.pin_chat_message(uid, pin.message_id,
+                                   disable_notification=True)
+        rec["promo"]["pin_msg_id"] = pin.message_id
+        save_state(STATE)
+        # обновляем закреп раз в 30 минут (не чаще — бережём лимиты Telegram)
+        context.application.job_queue.run_repeating(
+            promo_tick, interval=1800, first=1800,
+            name=f"promotick_{uid}", data={"uid": uid},
+        )
+    except Exception as e:
+        log.error("promo pin failed: %s", e)
+
+    # напоминание за пару часов до конца
+    remind_in = max(60, (PROMO_HOURS - 2) * 3600)
+    context.application.job_queue.run_once(
+        promo_remind, when=remind_in,
+        name=f"promoremind_{uid}", data={"uid": uid},
+    )
+
+
+async def promo_tick(context: ContextTypes.DEFAULT_TYPE):
+    """Обновляет закреплённое сообщение с обратным отсчётом."""
+    uid = context.job.data["uid"]
+    rec = u(uid)
+    promo = rec.get("promo") or {}
+    pin_id = promo.get("pin_msg_id")
+    deadline = promo.get("deadline", 0)
+    if not pin_id:
+        context.job.schedule_removal()
+        return
+    bot = context.bot
+    if time.time() >= deadline:
+        # истекло — финальный текст, открепить, остановить джоб
+        try:
+            await bot.edit_message_text(TXT["promo_expired"], uid, pin_id)
+            await bot.unpin_chat_message(uid, pin_id)
+        except Exception as e:
+            log.error("promo expire failed: %s", e)
+        context.job.schedule_removal()
+        return
+    try:
+        await bot.edit_message_text(
+            TXT["promo_pinned"].format(left=fmt_left(deadline)), uid, pin_id)
+    except Exception:
+        pass  # текст не изменился или сообщение удалено — не страшно
+
+
+async def promo_remind(context: ContextTypes.DEFAULT_TYPE):
+    """Однократное напоминание ближе к концу промо."""
+    uid = context.job.data["uid"]
+    rec = u(uid)
+    promo = rec.get("promo") or {}
+    deadline = promo.get("deadline", 0)
+    if time.time() >= deadline:
+        return
+    try:
+        await context.bot.send_message(
+            uid, TXT["promo_drip"], [(BTN["promo_get"], promo.get("link"), True)])
+    except Exception as e:
+        log.error("promo_remind failed: %s", e)
 
 
 # ---------------- ДОГОНЯЮЩИЕ ----------------
@@ -686,30 +930,18 @@ async def drip_fire(context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
     try:
         if tag == "after_v1":
-            await bot.send_message(
-                uid, TXT["drip_after_v1"],
-                reply_markup=kb([(BTN["to_v2"], "go_v2", False)]),
-            )
+            await send_step(bot, uid, TXT["drip_after_v1"], [(BTN["to_v2"], "go_v2", False)])
         elif tag == "after_v3":
-            await bot.send_message(
-                uid, TXT["drip_after_v3"],
-                reply_markup=kb([(BTN["to_fork"], "go_fork", False)]),
-            )
+            await send_step(bot, uid, TXT["drip_after_v3"], [(BTN["to_fork"], "go_fork", False)])
         elif tag == "after_offer":
             # текст + 3 кнопки: разбор / лид-магнит / личка
-            await bot.send_message(
-                uid, TXT["drip_after_offer"],
-                reply_markup=kb([
+            await send_step(bot, uid, TXT["drip_after_offer"], [
                     (BTN["to_lead"], "go_lead", False),
                     (BTN["lm_grab"], "lm_want", False),
                     (BTN["contact"], CALL_LINK, True),
-                ]),
-            )
+                ])
         elif tag == "after_lead":
-            await bot.send_message(
-                uid, TXT["drip_after_lead"],
-                reply_markup=kb([(BTN["contact"], CALL_LINK, True)]),
-            )
+            await send_step(bot, uid, TXT["drip_after_lead"], [(BTN["contact"], CALL_LINK, True)])
     except Exception as e:
         log.error("drip_fire failed: %s", e)
 
@@ -719,34 +951,29 @@ async def drip_fire(context: ContextTypes.DEFAULT_TYPE):
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     cancel_drips(context.application, uid)
+    # сбрасываем память о прошлой клавиатуре — начинаем заново
+    u(uid)["last_kb_msg"] = None
     set_step(uid, "start")
-    await context.bot.send_message(
-        uid, TXT["start"],
-        reply_markup=kb([(BTN["start"], "go_intro", False)]),
-    )
+    await send_step(context.bot, uid, TXT["start"],
+                    [(BTN["start"], "go_intro", False)])
 
 
 async def go_intro(update, context):
     uid = update.effective_user.id
     bot = context.bot
     await send_circle(bot, uid, "circle_intro")
-    await bot.send_message(
-        uid, TXT["after_circle_intro"],
-        reply_markup=kb([(BTN["to_v1"], "go_v1", False)]),
-    )
+    await send_step(bot, uid, TXT["after_circle_intro"], [(BTN["to_v1"], "go_v1", False)])
     set_step(uid, "intro")
 
 
 async def go_v1(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await bot.send_message(uid, TXT["before_v1"])
+    await send_step(bot, uid, TXT["before_v1"])
     await send_media_file(bot, uid, "video_1")
     await send_proofs(bot, uid, PROOFS_AFTER_V1, TXT["proofs_v1_caption"])
     await bot.send_message(
-        uid, TXT["after_v1"],
-        reply_markup=kb([(BTN["to_v2"], "go_v2", False)]),
-    )
+        uid, TXT["after_v1"], [(BTN["to_v2"], "go_v2", False)])
     set_step(uid, "v1")
     schedule_drip(context.application, uid, "after_v1", DRIP_HOURS["after_v1"])
 
@@ -755,25 +982,21 @@ async def go_v2(update, context):
     uid = update.effective_user.id
     bot = context.bot
     cancel_drips(context.application, uid)
-    await bot.send_message(uid, TXT["bridge_v2"])
+    await send_step(bot, uid, TXT["bridge_v2"])
     await send_media_file(bot, uid, "video_2")
     await send_proofs(bot, uid, PROOFS_AFTER_V2, TXT["proofs_v2_caption"])
     await bot.send_message(
-        uid, TXT["after_v2"],
-        reply_markup=kb([(BTN["to_v3"], "go_v3", False)]),
-    )
+        uid, TXT["after_v2"], [(BTN["to_v3"], "go_v3", False)])
     set_step(uid, "v2")
 
 
 async def go_v3(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await bot.send_message(uid, TXT["bridge_v3"])
+    await send_step(bot, uid, TXT["bridge_v3"])
     await send_media_file(bot, uid, "video_3")
     await bot.send_message(
-        uid, TXT["after_v3"],
-        reply_markup=kb([(BTN["to_fork"], "go_fork", False)]),
-    )
+        uid, TXT["after_v3"], [(BTN["to_fork"], "go_fork", False)])
     set_step(uid, "v3")
     schedule_drip(context.application, uid, "after_v3", DRIP_HOURS["after_v3"])
 
@@ -783,10 +1006,7 @@ async def go_fork(update, context):
     bot = context.bot
     cancel_drips(context.application, uid)
     await send_circle(bot, uid, "circle_fork")
-    await bot.send_message(
-        uid, TXT["after_fork_circle"],
-        reply_markup=kb([(BTN["to_offer"], "go_offer", False)]),
-    )
+    await send_step(bot, uid, TXT["after_fork_circle"], [(BTN["to_offer"], "go_offer", False)])
     set_step(uid, "fork")
 
 
@@ -794,7 +1014,7 @@ async def go_offer(update, context):
     uid = update.effective_user.id
     bot = context.bot
     cancel_drips(context.application, uid)
-    await bot.send_message(uid, TXT["offer_text"])
+    await send_step(bot, uid, TXT["offer_text"])
     await bot.send_message(uid, TXT["offer_price_and_call"])
     await bot.send_message(uid, TXT["offer_gift"])
 
@@ -805,12 +1025,10 @@ async def go_offer(update, context):
         programs_btn = (BTN["programs"], "go_programs", False)
 
     await bot.send_message(
-        uid, TXT["offer_risk"],
-        reply_markup=kb([
+        uid, TXT["offer_risk"], [
             programs_btn,
             (BTN["to_lead"], "go_lead", False),
-        ]),
-    )
+        ])
     set_step(uid, "offer")
     schedule_drip(context.application, uid, "after_offer",
                   DRIP_HOURS["after_offer"])
@@ -823,25 +1041,20 @@ async def go_programs(update, context):
     bot = context.bot
     # если Mini App настроен — лучше открыть его
     if WEBAPP_URL:
-        await bot.send_message(
-            uid, "Открываю программы и результаты:",
-            reply_markup=kb([
+        await send_step(bot, uid, "Открываю программы и результаты:", [
                 (BTN["programs"], webapp_url_full(), "webapp"),
                 (BTN["to_lead"], "go_lead", False),
-            ]),
-        )
+            ])
         return
     # иначе — тарифы текстом + старый показ результатов фото
-    await bot.send_message(uid, TXT["programs_text"])
+    await send_step(bot, uid, TXT["programs_text"])
     await send_proofs(bot, uid, PROOFS_STUDENTS, TXT["students_caption"])
     await send_proofs(bot, uid, [SITE_SCREEN], TXT["site_caption"])
     await bot.send_message(
-        uid, TXT["back_to_offer"],
-        reply_markup=kb([
+        uid, TXT["back_to_offer"], [
             (BTN["site"], SITE_LINK, True),
             (BTN["to_lead"], "go_lead", False),
-        ]),
-    )
+        ])
 
 
 async def go_students(update, context):
@@ -849,13 +1062,10 @@ async def go_students(update, context):
     bot = context.bot
     await send_proofs(bot, uid, PROOFS_STUDENTS, TXT["students_caption"])
     await send_proofs(bot, uid, [SITE_SCREEN], TXT["site_caption"])
-    await bot.send_message(
-        uid, TXT["back_to_offer"],
-        reply_markup=kb([
+    await send_step(bot, uid, TXT["back_to_offer"], [
             (BTN["site"],    SITE_LINK, True),
             (BTN["to_lead"], "go_lead", False),
-        ]),
-    )
+        ])
 
 
 async def go_lead(update, context):
@@ -863,11 +1073,8 @@ async def go_lead(update, context):
     bot = context.bot
     cancel_drips(context.application, uid)
     set_step(uid, "lead")
-    await bot.send_message(
-        uid, TXT["q1"],
-        reply_markup=kb([(o, f"a1_{i}", False)
-                         for i, o in enumerate(TXT["q1_opts"])]),
-    )
+    await send_step(bot, uid, TXT["q1"], [(o, f"a1_{i}", False)
+                         for i, o in enumerate(TXT["q1_opts"])])
 
 
 async def answer(update, context, qnum, idx):
@@ -879,43 +1086,51 @@ async def answer(update, context, qnum, idx):
     save_state(STATE)
 
     if qnum == 1:
-        await bot.send_message(
-            uid, TXT["q2"],
-            reply_markup=kb([(o, f"a2_{i}", False)
-                             for i, o in enumerate(TXT["q2_opts"])]),
-        )
+        await send_step(bot, uid, TXT["q2"], [(o, f"a2_{i}", False)
+                             for i, o in enumerate(TXT["q2_opts"])])
         return
     if qnum == 2:
-        await bot.send_message(
-            uid, TXT["q3"],
-            reply_markup=kb([(o, f"a3_{i}", False)
-                             for i, o in enumerate(TXT["q3_opts"])]),
-        )
+        await send_step(bot, uid, TXT["q3"], [(o, f"a3_{i}", False)
+                             for i, o in enumerate(TXT["q3_opts"])])
         return
 
     # qnum == 3 — финал квиза
     a = rec["answers"]
     is_cold = (a.get("q1") == "Пока не готов") or (a.get("q3") == "просто изучаю")
+    user = update.effective_user
+    rec["full_name"] = user.full_name
+    rec["username"] = user.username or ""
 
+    temperature = "cold"
     if is_cold:
         # холодному — лид-магнит вместо приглашения на разбор
         set_step(uid, "qualified_cold")
+        rec["temperature"] = "cold"
+        save_state(STATE)
         await show_lead_magnet_offer(bot, uid, intro=TXT["cold_finish"])
     else:
-        # тёплый/горячий — приглашение связаться + догон
-        await bot.send_message(
-            uid, TXT["after_quiz"],
-            reply_markup=kb([(BTN["contact"], CALL_LINK, True)]),
-        )
+        # тёплый/горячий — персональная скидка + бонус личный созвон
+        temperature = lead_temperature(a)
         set_step(uid, "qualified")
+        rec["temperature"] = temperature
+        save_state(STATE)
+        await show_promo(context, uid, user, temperature)
         schedule_drip(context.application, uid, "after_lead",
                       DRIP_HOURS["after_lead"])
 
     # уведомление тебе в любом случае
     if ADMIN_ID:
-        user = update.effective_user
         uname = f"@{user.username}" if user.username else "(без username)"
-        tag = "❄️ ХОЛОДНЫЙ (изучает)" if is_cold else "🔥 НОВАЯ ЗАЯВКА"
+        tag = {"cold": "❄️ ХОЛОДНЫЙ (изучает)",
+               "warm": "🔥 ТЁПЛЫЙ — выдана скидка",
+               "hot":  "🔥🔥 ГОРЯЧИЙ — выдана скидка"}[temperature]
+        promo_line = ""
+        if temperature != "cold":
+            dl = rec.get("promo", {}).get("deadline")
+            if dl:
+                promo_line = (f"\nСкидка действует до: "
+                              f"{datetime.fromtimestamp(dl):%d.%m %H:%M} "
+                              f"(осталось {fmt_left(dl)})")
         try:
             await bot.send_message(
                 ADMIN_ID,
@@ -926,7 +1141,8 @@ async def answer(update, context, qnum, idx):
                 f"Чат: tg://user?id={user.id}\n\n"
                 f"Бюджет: {a.get('q1','-')}\n"
                 f"Время: {a.get('q2','-')}\n"
-                f"Старт: {a.get('q3','-')}",
+                f"Старт: {a.get('q3','-')}"
+                f"{promo_line}",
             )
         except Exception as e:
             log.error("notify admin failed: %s", e)
@@ -936,6 +1152,13 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
     d = q.data
+    # Убираем кнопки с этого сообщения, чтобы их нельзя было нажать
+    # повторно из истории чата (кроме админских кнопок статуса лида).
+    if not d.startswith("mk_"):
+        try:
+            await q.edit_message_reply_markup(reply_markup=None)
+        except Exception:
+            pass
     routes = {
         "go_intro":    go_intro,
         "go_v1":       go_v1,
@@ -959,6 +1182,20 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await answer(update, context, 2, int(d.split("_")[1]))
     elif d.startswith("a3_"):
         await answer(update, context, 3, int(d.split("_")[1]))
+    elif d.startswith("mk_"):
+        # mk_{lead_id}_{status} — только админ
+        if update.effective_user.id != ADMIN_ID:
+            return
+        _, lead_id, status = d.split("_", 2)
+        rec = STATE.get(lead_id)
+        if rec:
+            rec["outcome"] = status
+            save_state(STATE)
+            names = {"paid": "✅ оплатил", "booked": "📅 записан",
+                     "noshow": "🚫 не пришёл", "lost": "❌ отказ"}
+            await q.edit_message_text(
+                f"{q.message.text}\n\n➡️ Статус обновлён: "
+                f"{names.get(status, status)}")
 
 
 # ---------------- АДМИН-КОМАНДЫ ----------------
@@ -1004,19 +1241,118 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     counts = {}
     guide_count = 0
+    temp = {"hot": 0, "warm": 0, "cold": 0}
+    promo_issued = promo_active = 0
+    outcomes = {}
+    now = time.time()
     for rec in STATE.values():
         s = rec.get("step", "start")
         counts[s] = counts.get(s, 0) + 1
         if rec.get("got_guide"):
             guide_count += 1
+        t = rec.get("temperature")
+        if t in temp:
+            temp[t] += 1
+        promo = rec.get("promo")
+        if promo:
+            promo_issued += 1
+            if promo.get("deadline", 0) > now:
+                promo_active += 1
+        oc = rec.get("outcome")
+        if oc:
+            outcomes[oc] = outcomes.get(oc, 0) + 1
     order = ["start", "intro", "v1", "v2", "v3", "fork",
              "offer", "lead", "qualified", "qualified_cold"]
-    lines = ["📊 Воронка (сколько людей на каком шаге сейчас):"]
+    lines = ["📊 Воронка (кто на каком шаге сейчас):"]
     for s in order:
         lines.append(f"{s}: {counts.get(s, 0)}")
-    lines.append(f"\nЗабрали гайд: {guide_count}")
-    lines.append(f"Всего людей: {len(STATE)}")
+    lines.append(f"\n🌡 Тёплых: {temp['warm']} · Горячих: {temp['hot']} · "
+                 f"Холодных: {temp['cold']}")
+    lines.append(f"🔥 Промо выдано: {promo_issued} (активно сейчас: {promo_active})")
+    lines.append(f"🎁 Забрали гайд: {guide_count}")
+    if outcomes:
+        oc_str = " · ".join(f"{k}: {v}" for k, v in outcomes.items())
+        lines.append(f"📌 Статусы: {oc_str}")
+    lines.append(f"\nВсего людей: {len(STATE)}")
+    lines.append("\n/report — выгрузить всех в файл (Excel)")
+    lines.append("/lead ID — карточка лида + смена статуса")
     await update.message.reply_text("\n".join(lines))
+
+
+async def cmd_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Выгрузка всех лидов в CSV (открывается в Excel)."""
+    if update.effective_user.id != ADMIN_ID:
+        return
+    import csv
+    import io
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["telegram_id", "username", "имя", "температура", "шаг",
+                "бюджет", "время_в_день", "когда_старт", "забрал_гайд",
+                "промо_выдано", "промо_дедлайн", "статус", "вошёл",
+                "последнее_действие"])
+    for uid, rec in STATE.items():
+        a = rec.get("answers", {})
+        promo = rec.get("promo") or {}
+        dl = promo.get("deadline")
+        dl_str = datetime.fromtimestamp(dl).strftime("%Y-%m-%d %H:%M") if dl else ""
+        w.writerow([
+            uid, rec.get("username", ""), rec.get("full_name", ""),
+            rec.get("temperature", ""), rec.get("step", ""),
+            a.get("q1", ""), a.get("q2", ""), a.get("q3", ""),
+            "да" if rec.get("got_guide") else "",
+            "да" if promo else "", dl_str,
+            rec.get("outcome", ""),
+            rec.get("joined", ""), rec.get("step_at", ""),
+        ])
+    data = buf.getvalue().encode("utf-8-sig")  # BOM — чтобы Excel не ломал кириллицу
+    import io as _io
+    bio = _io.BytesIO(data)
+    bio.name = f"leads_{datetime.now():%Y%m%d_%H%M}.csv"
+    await context.bot.send_document(
+        update.effective_user.id, bio,
+        caption=f"Отчёт по {len(STATE)} лидам. Открывается в Excel.")
+
+
+async def cmd_lead(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Карточка одного лида + кнопки смены статуса."""
+    if update.effective_user.id != ADMIN_ID:
+        return
+    parts = (update.message.text or "").split()
+    if len(parts) < 2:
+        await update.message.reply_text("Использование: /lead ID\n"
+                                        "ID берётся из уведомления о заявке.")
+        return
+    lead_id = parts[1].strip()
+    rec = STATE.get(lead_id)
+    if not rec:
+        await update.message.reply_text("Лид с таким ID не найден.")
+        return
+    a = rec.get("answers", {})
+    promo = rec.get("promo") or {}
+    dl = promo.get("deadline")
+    dl_str = (f"{datetime.fromtimestamp(dl):%d.%m %H:%M} "
+              f"({fmt_left(dl)})") if dl else "—"
+    uname = f"@{rec['username']}" if rec.get("username") else "—"
+    txt = (
+        f"👤 {rec.get('full_name','—')}  {uname}\n"
+        f"ID: {lead_id}\n"
+        f"Чат: tg://user?id={lead_id}\n\n"
+        f"Температура: {rec.get('temperature','—')}\n"
+        f"Шаг: {rec.get('step','—')}\n"
+        f"Бюджет: {a.get('q1','—')} · Время: {a.get('q2','—')} · "
+        f"Старт: {a.get('q3','—')}\n"
+        f"Гайд забрал: {'да' if rec.get('got_guide') else 'нет'}\n"
+        f"Промо: {'выдано, до '+dl_str if promo else 'нет'}\n"
+        f"Статус: {rec.get('outcome','не задан')}\n\n"
+        f"Отметить статус:"
+    )
+    await update.message.reply_text(txt, reply_markup=kb([
+        [("✅ Оплатил", f"mk_{lead_id}_paid", False),
+         ("📅 Записан", f"mk_{lead_id}_booked", False)],
+        [("🚫 Не пришёл", f"mk_{lead_id}_noshow", False),
+         ("❌ Отказ", f"mk_{lead_id}_lost", False)],
+    ]))
 
 
 async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1052,12 +1388,18 @@ def main():
         log.warning("WEBAPP_URL не задан — кнопка «Что входит» покажет "
                     "программы текстом. Для Mini App см. MINI_APP.md.")
 
+    if not PROMO_SECRET:
+        log.warning("PROMO_SECRET не задан — промо-скидки выдаваться НЕ будут "
+                    "(тёплым/горячим отдаётся контакт). Задай PROMO_SECRET.")
+
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("programs", cmd_programs))
     app.add_handler(CommandHandler("id",    cmd_id))
     app.add_handler(CommandHandler("stats", cmd_stats))
+    app.add_handler(CommandHandler("report", cmd_report))
+    app.add_handler(CommandHandler("lead", cmd_lead))
     app.add_handler(CommandHandler("reset", cmd_reset))
     app.add_handler(CallbackQueryHandler(on_button))
     app.add_handler(MessageHandler(
