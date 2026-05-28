@@ -11,6 +11,7 @@ Amazon-воронка: Telegram-бот.  Боевая сборка для @vadji
 ╚══════════════════════════════════════════════════════════════════════╝
 """
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -111,32 +112,37 @@ GUIDE_FILENAME = "guide.pdf"  # имя файла рядом с bot.py
 
 MEDIA = {
 
-    # КРУЖОК «КТО Я» (58 сек) — после /start.
+    # КРУЖОК «КТО Я» (47 сек) — после /start.
     "circle_intro":  {
         "file_id": "DQACAgIAAxkBAAMfahhQbWjfCilhcGCa5i6O7rDJJTcAAlqaAAJBpahI4aN9dQb-NTs7BA",
+        "sec": 47,
     },
 
-    # ВИДЕО 1 — кейс про Игоря и $750.
+    # ВИДЕО 1 — кейс. ⬇️ ВПИШИ в "sec" реальную длину видео в секундах.
     "video_1":       {
         "file_id": "BQACAgIAAxkBAAMjahha-z4qjKU5N0vdaA2BpkP991oAAh2ZAAKUislIlXFwBBtVE3Y7BA",
         "kind": "document",
+        "sec": 90,
     },
 
-    # ВИДЕО 2 — как работает механика.
+    # ВИДЕО 2 — как работает механика. ⬇️ впиши реальную длину в "sec".
     "video_2":       {
         "file_id": "BQACAgIAAxkBAAMbahhQRlHSqn8kmwABaqjx-J74TjOjAALHoQACHH-4SDBaQh9qb6shOwQ",
         "kind": "document",
+        "sec": 90,
     },
 
-    # ВИДЕО 3 — кому НЕ стоит.
+    # ВИДЕО 3 — кому НЕ стоит. ⬇️ впиши реальную длину в "sec".
     "video_3":       {
         "file_id": "BQACAgIAAxkBAAMdahhQWH8nZmU6aCjyKcSi87oVqCYAAsuhAAIcf7hI4NDb87GMAgs7BA",
         "kind": "document",
+        "sec": 90,
     },
 
-    # КРУЖОК-РАЗВИЛКА (47 сек) — после видео 3, мост к офферу.
+    # КРУЖОК-РАЗВИЛКА (58 сек) — после видео 3, мост к офферу.
     "circle_fork":   {
         "file_id": "DQACAgIAAxkBAAMhahhQfhCycqexkKysYDi_MMFQ4WwAAlmZAAJBpaBIUqucIOryZbc7BA",
+        "sec": 58,
     },
 }
 
@@ -569,6 +575,37 @@ async def send_step(bot, uid, text, rows=None, **kwargs):
     return msg
 
 
+# ---------------- ПАУЗЫ МЕЖДУ СООБЩЕНИЯМИ ----------------
+# Бот «дышит»: даёт человеку время посмотреть кружок/видео и прочитать
+# текст, прежде чем слать следующее сообщение. Без этого всё валится
+# разом и выглядит как робот.
+
+# Выключить паузы (для быстрых тестов): переменная окружения PAUSES=0
+PAUSES_ON = os.getenv("PAUSES", "1").strip().lower() not in ("0", "false", "no", "")
+READ_WPM = 170            # средняя скорость чтения, слов в минуту
+MIN_TEXT_PAUSE = 1.2      # сек — минимум между сообщениями
+MAX_TEXT_PAUSE = 7        # сек — потолок паузы на чтение текста
+MAX_MEDIA_PAUSE = 75      # сек — потолок паузы после видео/кружка
+
+
+async def hold(seconds):
+    """Тихая пауза (без 'печатает'). Уважает потолок и флаг PAUSES."""
+    if PAUSES_ON and seconds and seconds > 0:
+        await asyncio.sleep(min(seconds, MAX_MEDIA_PAUSE))
+
+
+def read_time(text):
+    """Сколько секунд человеку нужно, чтобы прочитать этот текст."""
+    words = max(1, len((text or "").split()))
+    t = words / READ_WPM * 60
+    return max(MIN_TEXT_PAUSE, min(t, MAX_TEXT_PAUSE))
+
+
+def media_sec(key):
+    """Длительность кружка/видео (сек) для расчёта паузы."""
+    return MEDIA.get(key, {}).get("sec", 0)
+
+
 def webapp_url_full():
     """URL Mini App с подставленными ссылками contact/site."""
     if not WEBAPP_URL:
@@ -893,8 +930,8 @@ async def promo_remind(context: ContextTypes.DEFAULT_TYPE):
     if time.time() >= deadline:
         return
     try:
-        await context.bot.send_message(
-            uid, TXT["promo_drip"], [(BTN["promo_get"], promo.get("link"), True)])
+        await send_step(context.bot, uid, TXT["promo_drip"],
+                        [(BTN["promo_get"], promo.get("link"), True)])
     except Exception as e:
         log.error("promo_remind failed: %s", e)
 
@@ -966,18 +1003,23 @@ async def go_intro(update, context):
     uid = update.effective_user.id
     bot = context.bot
     await send_circle(bot, uid, "circle_intro")
-    await send_step(bot, uid, TXT["after_circle_intro"], [(BTN["to_v1"], "go_v1", False)])
+    await hold(media_sec("circle_intro"))     # даём посмотреть кружок
+    await send_step(bot, uid, TXT["after_circle_intro"],
+                    [(BTN["to_v1"], "go_v1", False)])
     set_step(uid, "intro")
 
 
 async def go_v1(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await send_step(bot, uid, TXT["before_v1"])
+    await bot.send_message(uid, TXT["before_v1"])
+    await hold(read_time(TXT["before_v1"]))
     await send_media_file(bot, uid, "video_1")
+    await hold(media_sec("video_1"))          # даём посмотреть видео
     await send_proofs(bot, uid, PROOFS_AFTER_V1, TXT["proofs_v1_caption"])
-    await bot.send_message(
-        uid, TXT["after_v1"], [(BTN["to_v2"], "go_v2", False)])
+    await hold(len(PROOFS_AFTER_V1) * 2 + 2)  # даём разглядеть скрины
+    await send_step(bot, uid, TXT["after_v1"],
+                    [(BTN["to_v2"], "go_v2", False)])
     set_step(uid, "v1")
     schedule_drip(context.application, uid, "after_v1", DRIP_HOURS["after_v1"])
 
@@ -986,21 +1028,26 @@ async def go_v2(update, context):
     uid = update.effective_user.id
     bot = context.bot
     cancel_drips(context.application, uid)
-    await send_step(bot, uid, TXT["bridge_v2"])
+    await bot.send_message(uid, TXT["bridge_v2"])
+    await hold(read_time(TXT["bridge_v2"]))
     await send_media_file(bot, uid, "video_2")
+    await hold(media_sec("video_2"))
     await send_proofs(bot, uid, PROOFS_AFTER_V2, TXT["proofs_v2_caption"])
-    await bot.send_message(
-        uid, TXT["after_v2"], [(BTN["to_v3"], "go_v3", False)])
+    await hold(len(PROOFS_AFTER_V2) * 2 + 2)
+    await send_step(bot, uid, TXT["after_v2"],
+                    [(BTN["to_v3"], "go_v3", False)])
     set_step(uid, "v2")
 
 
 async def go_v3(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await send_step(bot, uid, TXT["bridge_v3"])
+    await bot.send_message(uid, TXT["bridge_v3"])
+    await hold(read_time(TXT["bridge_v3"]))
     await send_media_file(bot, uid, "video_3")
-    await bot.send_message(
-        uid, TXT["after_v3"], [(BTN["to_fork"], "go_fork", False)])
+    await hold(media_sec("video_3"))
+    await send_step(bot, uid, TXT["after_v3"],
+                    [(BTN["to_fork"], "go_fork", False)])
     set_step(uid, "v3")
     schedule_drip(context.application, uid, "after_v3", DRIP_HOURS["after_v3"])
 
@@ -1010,7 +1057,9 @@ async def go_fork(update, context):
     bot = context.bot
     cancel_drips(context.application, uid)
     await send_circle(bot, uid, "circle_fork")
-    await send_step(bot, uid, TXT["after_fork_circle"], [(BTN["to_offer"], "go_offer", False)])
+    await hold(media_sec("circle_fork"))      # даём посмотреть кружок
+    await send_step(bot, uid, TXT["after_fork_circle"],
+                    [(BTN["to_offer"], "go_offer", False)])
     set_step(uid, "fork")
 
 
@@ -1018,9 +1067,12 @@ async def go_offer(update, context):
     uid = update.effective_user.id
     bot = context.bot
     cancel_drips(context.application, uid)
-    await send_step(bot, uid, TXT["offer_text"])
+    await bot.send_message(uid, TXT["offer_text"])
+    await hold(read_time(TXT["offer_text"]))
     await bot.send_message(uid, TXT["offer_price_and_call"])
+    await hold(read_time(TXT["offer_price_and_call"]))
     await bot.send_message(uid, TXT["offer_gift"])
+    await hold(read_time(TXT["offer_gift"]))
 
     # Кнопка «Что входит»: Mini App если есть URL, иначе текстовый показ.
     if WEBAPP_URL:
@@ -1028,11 +1080,10 @@ async def go_offer(update, context):
     else:
         programs_btn = (BTN["programs"], "go_programs", False)
 
-    await bot.send_message(
-        uid, TXT["offer_risk"], [
-            programs_btn,
-            (BTN["to_lead"], "go_lead", False),
-        ])
+    await send_step(bot, uid, TXT["offer_risk"], [
+        programs_btn,
+        (BTN["to_lead"], "go_lead", False),
+    ])
     set_step(uid, "offer")
     schedule_drip(context.application, uid, "after_offer",
                   DRIP_HOURS["after_offer"])
@@ -1051,25 +1102,29 @@ async def go_programs(update, context):
             ])
         return
     # иначе — тарифы текстом + старый показ результатов фото
-    await send_step(bot, uid, TXT["programs_text"])
+    await bot.send_message(uid, TXT["programs_text"])
+    await hold(read_time(TXT["programs_text"]))
     await send_proofs(bot, uid, PROOFS_STUDENTS, TXT["students_caption"])
+    await hold(len(PROOFS_STUDENTS) * 1.5 + 2)
     await send_proofs(bot, uid, [SITE_SCREEN], TXT["site_caption"])
-    await bot.send_message(
-        uid, TXT["back_to_offer"], [
-            (BTN["site"], SITE_LINK, True),
-            (BTN["to_lead"], "go_lead", False),
-        ])
+    await hold(3)
+    await send_step(bot, uid, TXT["back_to_offer"], [
+        (BTN["site"], SITE_LINK, True),
+        (BTN["to_lead"], "go_lead", False),
+    ])
 
 
 async def go_students(update, context):
     uid = update.effective_user.id
     bot = context.bot
     await send_proofs(bot, uid, PROOFS_STUDENTS, TXT["students_caption"])
+    await hold(len(PROOFS_STUDENTS) * 1.5 + 2)
     await send_proofs(bot, uid, [SITE_SCREEN], TXT["site_caption"])
+    await hold(3)
     await send_step(bot, uid, TXT["back_to_offer"], [
-            (BTN["site"],    SITE_LINK, True),
-            (BTN["to_lead"], "go_lead", False),
-        ])
+        (BTN["site"],    SITE_LINK, True),
+        (BTN["to_lead"], "go_lead", False),
+    ])
 
 
 async def go_lead(update, context):
