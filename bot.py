@@ -57,10 +57,13 @@ SITE_LINK = os.getenv("SITE_LINK", "").strip() or "https://vadjik.com/"
 
 RESULTS_LINK = os.getenv("RESULTS_URL", "").strip() or "https://vadjik.com/results"
 
+ABOUT_LINK = os.getenv("ABOUT_LINK", "").strip() or "https://telegra.ph/Kto-ya-05-06-7"
+
 # Подписи нижнего меню (Reply Keyboard) — должны совпадать с кнопками.
 MENU_FORMATS = "💎 Форматы сотрудничества и обучения"
 MENU_RESULTS = "📈 Результаты учеников"
 MENU_GUIDE = "📘 Забрать гайд"
+MENU_ABOUT = "👤 Обо мне"
 
 # Ссылка на Telegram Mini App (витрина тарифов + результатов).
 # Это HTTPS-адрес, где захостен mini_app/index.html (см. MINI_APP.md).
@@ -368,7 +371,8 @@ TXT = {
         "Всё подробно — в меню внизу 👇\n\n"
         "• форматы и обучение — мини-приложение\n"
         "• результаты учеников — сайт\n"
-        "• PDF-гайд — бесплатно"
+        "• PDF-гайд — бесплатно\n"
+        "• обо мне — статья в Telegraph"
     ),
     "menu_results": (
         "Результаты учеников — на сайте, со скринами и цифрами 👇"
@@ -768,7 +772,8 @@ def webapp_url_full():
     if not WEBAPP_URL:
         return ""
     return (f"{WEBAPP_URL}?contact={quote(CALL_LINK, safe='')}"
-            f"&site={quote(SITE_LINK, safe='')}")
+            f"&site={quote(SITE_LINK, safe='')}"
+            f"&results={quote(RESULTS_LINK, safe='')}")
 
 
 def programs_btn():
@@ -797,6 +802,7 @@ def main_reply_keyboard():
     else:
         rows.append([KeyboardButton(MENU_FORMATS)])
     rows.append([KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)])
+    rows.append([KeyboardButton(MENU_ABOUT, url=ABOUT_LINK)])
     return ReplyKeyboardMarkup(
         rows, resize_keyboard=True, is_persistent=True,
     )
@@ -843,6 +849,7 @@ def webapp_promo_url(uid, deadline, discount_link):
     sig = promo_sig(uid, deadline)
     return (f"{WEBAPP_URL}?contact={quote(CALL_LINK, safe='')}"
             f"&site={quote(SITE_LINK, safe='')}"
+            f"&results={quote(RESULTS_LINK, safe='')}"
             f"&uid={uid}&deadline={deadline}&sig={sig}"
             f"&disc={PROMO_DISCOUNT}"
             f"&discount={quote(discount_link, safe='')}")
