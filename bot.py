@@ -89,14 +89,17 @@ PROMO_DISCOUNT = int(os.getenv("PROMO_DISCOUNT", "20") or "20")
 #    подписку.
 #
 #    Гайд бот берёт так:
-#      - если задан GUIDE_FILE_ID (env) — отправляет его (быстрее);
-#      - иначе — отправляет файл guide.pdf, лежащий рядом с bot.py.
-#    Просто положи guide.pdf в репозиторий рядом с этим файлом.
+#      - GUIDE_FILE_ID (env или дефолт ниже) — отправка по file_id;
+#      - иначе — файл guide.pdf рядом с bot.py.
+#    file_id только от ЭТОГО бота → /id после пересылки PDF.
 # ──────────────────────────────────────────────────────────────────────
 
 CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "").strip() or "@ВПИШИ_КАНАЛ"
 
-GUIDE_FILE_ID = os.getenv("GUIDE_FILE_ID", "").strip()  # опционально
+GUIDE_FILE_ID = (
+    os.getenv("GUIDE_FILE_ID", "").strip()
+    or "BQACAgIAAxkBAAIBMGoYngYvtSejdbzTGF6F_FKBc-LqAALYmwAClIrJSDEbEaQrNI_jOwQ"
+)
 GUIDE_FILENAME = "guide.pdf"  # имя файла рядом с bot.py
 
 
@@ -160,12 +163,24 @@ PROOFS_AFTER_V1 = [
     {"url": "https://i.postimg.cc/5txnDZFp/photo-2026-05-26-17-43-22.jpg"},
 ]
 
-# Блок B — после видео 2.
+# Блок B — после видео 2 (file_id от боевого бота, /id).
 PROOFS_AFTER_V2 = [
-    {"url": "https://i.postimg.cc/MZM2sQwp/photo-2024-05-09-21-42-26.jpg"},
-    {"url": "https://i.postimg.cc/5N8cJWjT/photo-2024-05-09-21-42-27.jpg"},
-    {"url": "https://i.postimg.cc/2SYs89ZY/photo-2026-05-26-17-43-48.jpg"},
-    {"url": "https://i.postimg.cc/nh16sK4k/photo-2026-05-26-17-44-17.jpg"},
+    {
+        "file_id": "AgACAgIAAxkBAAIBKGoYnT-aaDoOmZ2vltHe2iXgAaPGAAL6HGsblIrJSC-VmGZXt0xFAQADAgADeAADOwQ",
+        "caption": "Александр, США",
+    },
+    {
+        "file_id": "AgACAgIAAxkBAAIBKmoYnXtjm52qX2Okfk_Qdj2YtVl3AAL8HGsblIrJSEQbRGUJod0-AQADAgADeAADOwQ",
+        "caption": "Алексей, США",
+    },
+    {
+        "file_id": "AgACAgIAAxkBAAIBLGoYnYpnHzwCL80yrCxGkFzIIBgXAAL9HGsblIrJSNCKbfggnqqmAQADAgADeQADOwQ",
+        "caption": "Анатолий, Германия",
+    },
+    {
+        "file_id": "AgACAgIAAxkBAAIBLmoYnZ03RLEbndt7gooGFYNwMXa0AAL-HGsblIrJSIWN74fE8EnCAQADAgADeAADOwQ",
+        "caption": "Дмитрий, Италия",
+    },
 ]
 
 # Блок C — стек учеников по странам (по кнопке «Результаты учеников»).
@@ -205,10 +220,14 @@ TXT = {
         "$750 чистыми на Amazon.\n\n"
         "Это не история про миллионные обороты и не «кнопку, которая "
         "печатает деньги».\n\n"
-        "Это первый нормальный результат Игоря. Он пришёл без опыта и "
-        "сначала вообще не понимал, с чего начать: где искать товар, как "
-        "не купить ерунду и как не потерять деньги на первой закупке.\n\n"
-        "Внутри покажу путь простыми словами:\n\n"
+        "Также покажу учеников, которые выходят на $5 000–7 000 в месяц "
+        "торговлей на Amazon — с реальными скриншотами из кабинета "
+        "продавца.\n\n"
+        "А начнём с первого нормального результата Игоря. Он пришёл без "
+        "опыта и сначала вообще не понимал, с чего начать: где искать "
+        "товар, как не купить ерунду и как не потерять деньги на первой "
+        "закупке.\n\n"
+        "Внутри — путь простыми словами:\n\n"
         "🎬 как Игорь вышел на первую прибыль\n"
         "⚙️ как работает заработок на Amazon\n"
         "🙅 почему многие так и не начинают, хотя могли бы\n\n"
@@ -234,10 +253,13 @@ TXT = {
     ),
     "proofs_v1_caption": (
         "Вот почему этот пример важен.\n\n"
+        "Кстати, выше — реальные результаты учеников на Amazon. Такого "
+        "уровня можно достичь, если идти по шагам, а не «угадывать» "
+        "товар наугад.\n\n"
         "Игорь не нашёл хороший товар с первого раза. Первый список был "
         "слабый: где-то не сходились цифры, где-то товар был не тот, "
         "где-то покупка просто не имела смысла.\n\n"
-        "Но он получил правки, переделал работу и уже во второй раз "
+        "Но он получил правки, переделал работу — и уже во второй раз "
         "нашёл несколько нормальных вариантов.\n\n"
         "Дальше всё пошло по цепочке:\n\n"
         "закупка → подготовка товара → отправка на Amazon → продажи → "
@@ -536,7 +558,8 @@ BTN = {
     "to_v2":      "⚙️ Дальше — как работает схема",
     "v2_watch":   "▶️ Смотреть схему по шагам (~6 мин)",
     "v2_proofs":  "🌍 Примеры по странам",
-    "to_v3":      "🙅 Дальше — почему не начинают",
+    "v2_next":    "➡️ Дальше — к разбору страхов",
+    "to_v3":      "🙅 Смотреть разбор страхов (~7 мин)",
     "v3_watch":   "▶️ Смотреть разбор страхов (~7 мин)",
     "to_fork":    "➡️ Что дальше — кружок",
     "to_offer":   "📋 Что входит в работу со мной",
@@ -939,12 +962,29 @@ def _resolve_photo_source(item):
 
 
 async def send_proofs(bot, chat_id, proofs, caption=None):
-    sources = [_resolve_photo_source(p) for p in proofs]
-    sources = [s for s in sources if s]
-    if not sources:
+    """Фото по URL/file_id. Если у элемента есть caption — шлём по одному."""
+    items = [p for p in proofs if _resolve_photo_source(p)]
+    if not items:
         if caption:
             await bot.send_message(chat_id, caption)
         return
+    if any(p.get("caption") for p in items):
+        try:
+            for p in items:
+                src = _resolve_photo_source(p)
+                if not src:
+                    continue
+                cap = p.get("caption")
+                if isinstance(src, str) and os.path.exists(src):
+                    with open(src, "rb") as f:
+                        await bot.send_photo(chat_id, f, caption=cap)
+                else:
+                    await bot.send_photo(chat_id, src, caption=cap)
+            return
+        except Exception as e:
+            log.error("send_proofs (per photo) failed: %s", e)
+    sources = [_resolve_photo_source(p) for p in proofs]
+    sources = [s for s in sources if s]
     try:
         if len(sources) == 1:
             src = sources[0]
@@ -1313,7 +1353,15 @@ async def go_v2_video(update, context):
 async def go_v2_proofs(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await send_proofs(bot, uid, PROOFS_AFTER_V2, TXT["proofs_v2_caption"])
+    await send_proofs(bot, uid, PROOFS_AFTER_V2)
+    await send_step(bot, uid, TXT["proofs_v2_caption"],
+                    [(BTN["v2_next"], "go_v2_bridge", False)], skip_pause=True)
+
+
+async def go_v2_bridge(update, context):
+    """Мост между текстом про модель и блоком про страхи — с кнопкой."""
+    uid = update.effective_user.id
+    bot = context.bot
     await send_step(bot, uid, TXT["after_v2"],
                     [(BTN["to_v3"], "go_v3_prep", False)], skip_pause=True)
 
@@ -1497,6 +1545,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "go_v2_prep":       go_v2_prep,
         "go_v2_video":      go_v2_video,
         "go_v2_proofs":     go_v2_proofs,
+        "go_v2_bridge":     go_v2_bridge,
         "go_v3_prep":       go_v3_prep,
         "go_v3_video":      go_v3_video,
         "go_v3_after":      go_v3_after,
