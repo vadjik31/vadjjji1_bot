@@ -112,8 +112,8 @@ MEDIA = {
 
     # КРУЖОК «КТО Я» (47 сек) — после /start.
     "circle_intro":  {
-        "file_id": "DQACAgIAAxkBAAMfahhQbWjfCilhcGCa5i6O7rDJJTcAAlqaAAJBpahI4aN9dQb-NTs7BA",
-        "sec": 47,
+        "file_id": "DQACAgIAAxkBAAMhahhQfhCycqexkKysYDi_MMFQ4WwAAlmZAAJBpaBIUqucIOryZbc7BA",
+        "sec": 58,
     },
 
     # ВИДЕО 1 — история Игоря. ⬇️ ВПИШИ в "sec" реальную длину видео в секундах.
@@ -139,8 +139,8 @@ MEDIA = {
 
     # КРУЖОК-РАЗВИЛКА (58 сек) — после видео 3, мост к офферу.
     "circle_fork":   {
-        "file_id": "DQACAgIAAxkBAAMhahhQfhCycqexkKysYDi_MMFQ4WwAAlmZAAJBpaBIUqucIOryZbc7BA",
-        "sec": 58,
+        "file_id": "DQACAgIAAxkBAAMfahhQbWjfCilhcGCa5i6O7rDJJTcAAlqaAAJBpahI4aN9dQb-NTs7BA",
+        "sec": 47,
     },
 }
 
@@ -230,40 +230,38 @@ TXT = {
         "не из-за удачи, а из-за нормальной проверки товара перед покупкой."
     ),
     "proofs_v1_caption": (
-        "Вот почему этот пример важен.\n\n"
-        "Игорь не нашёл хороший товар с первого раза. Первый список был "
-        "слабый: где-то не сходились цифры, где-то товар был не тот, где-то "
-        "покупка просто не имела смысла.\n\n"
-        "Но он получил правки, переделал работу и уже во второй раз нашёл "
-        "несколько нормальных вариантов.\n\n"
-        "Дальше всё пошло по цепочке:\n\n"
-        "закупка → подготовка товара → отправка на Amazon → продажи → "
-        "чистая прибыль.\n\n"
-        "Это нормальный живой путь. Не «нажал кнопку и заработал», а "
-        "сделал шаги, исправил ошибки и получил результат."
+        "Вот такие результаты возможны на Amazon — разные страны, разные "
+        "суммы. Это не уникальный случай 👇"
     ),
     "after_v1": (
-        "Смысл не в том, что Игорь сразу всё понял.\n\n"
-        "Наоборот: сначала он ошибся. И именно поэтому этот пример "
-        "нормальный.\n\n"
-        "Он сделал проверку товаров, получил правки, переделал, закупил "
-        "и получил первые деньги.\n\n"
-        "Теперь давайте разберём саму схему: откуда вообще берётся "
-        "прибыль на Amazon и что именно делает продавец 👇"
+        "Вот почему этот пример важен.\n\n"
+        "Игорь не нашёл хороший товар с первого раза. Первый список был "
+        "слабый: где-то не сходились цифры, где-то товар был не тот, "
+        "где-то покупка просто не имела смысла.\n\n"
+        "Но он получил правки, переделал работу — и уже во второй раз "
+        "нашёл несколько нормальных вариантов.\n\n"
+        "Дальше всё пошло по шагам:\n\n"
+        "1. закупка товара\n"
+        "2. подготовка для Amazon\n"
+        "3. отправка на склад Amazon\n"
+        "4. продажи\n"
+        "5. чистая прибыль\n\n"
+        "Это нормальный живой путь: сделал, ошибся, исправил, получил "
+        "результат. Теперь покажу, откуда вообще берётся прибыль на "
+        "Amazon и что именно делает продавец 👇"
     ),
     "bridge_v2": (
         "Суть простая.\n\n"
-        "На Amazon уже есть покупатели. Люди каждый день заходят туда и "
+        "На Amazon уже есть покупатели. Люди каждый день заходят и "
         "покупают товары.\n\n"
-        "Вам не нужно создавать новый товар с нуля, делать бренд, "
-        "запускать рекламу и уговаривать людей купить.\n\n"
+        "Вам не нужно создавать новый товар, делать бренд и уговаривать "
+        "людей купить.\n\n"
         "Задача другая:\n\n"
-        "найти товар, который уже покупают на Amazon,\n"
-        "найти место, где его можно купить дешевле,\n"
-        "проверить все расходы,\n"
-        "купить товар,\n"
-        "отправить его на склад Amazon,\n"
-        "и забрать разницу после продажи.\n\n"
+        "1. найти товар, который уже покупают\n"
+        "2. найти место, где его можно купить дешевле\n"
+        "3. проверить расходы\n"
+        "4. отправить товар на склад Amazon\n"
+        "5. забрать разницу после продажи\n\n"
         "В следующем видео покажу всю схему по шагам 👇"
     ),
     "proofs_v2_caption": (
@@ -362,8 +360,8 @@ TXT = {
     ),
     "offer_risk": (
         "Если после просмотра форматов захотите понять, что подходит "
-        "именно вам, можно забрать бонус — личный разбор со мной.\n\n"
-        "На разборе смотрим:\n\n"
+        "именно вам, можно забрать бонус — скидка и личный созвон со мной.\n\n"
+        "На созвоне смотрим:\n\n"
         "— ваш бюджет;\n"
         "— сколько времени есть на старт;\n"
         "— с чего лучше начинать;\n"
@@ -401,7 +399,7 @@ TXT = {
     ),
     "back_to_offer": (
         "Посмотрели форматы? Если готовы разобрать вашу ситуацию — "
-        "заберите бонус: скидка на обучение и личный разбор 👇"
+        "заберите бонус: скидка на обучение и личный созвон 👇"
     ),
     "promo_fallback": (
         "Отлично 🙂\n\n"
@@ -425,7 +423,7 @@ TXT = {
         "Если есть сомнения — это нормально. Можно начать мягче: "
         "заберите гайд по ошибкам перед первой закупкой.\n\n"
         "А если хотите сразу разобрать вашу ситуацию — заберите бонус "
-        "и личный разбор 👇"
+        "и личный созвон 👇"
     ),
     "drip_after_lead": (
         "Вы забрали бонус — я на связи 🙌\n\n"
@@ -471,21 +469,21 @@ TXT = {
     "promo_hot": (
         "Отлично 🙂\n\n"
         "Закрепляю для вас бонус на {hours} часов: скидка на обучение + "
-        "личный разбор со мной в подарок.\n\n"
-        "На разборе посмотрим вашу ситуацию: бюджет, время, риски и "
+        "личный созвон со мной в подарок.\n\n"
+        "На созвоне посмотрим вашу ситуацию: бюджет, время, риски и "
         "какой формат старта будет адекватным.\n\n"
         "Кнопка ниже 👇"
     ),
     "promo_warm": (
         "Отлично 🙂\n\n"
         "Закрепляю для вас бонус на {hours} часов: скидка на обучение + "
-        "личный разбор со мной в подарок.\n\n"
-        "На разборе посмотрим вашу ситуацию: бюджет, время, риски и "
+        "личный созвон со мной в подарок.\n\n"
+        "На созвоне посмотрим вашу ситуацию: бюджет, время, риски и "
         "какой формат старта будет адекватным.\n\n"
         "Кнопка ниже 👇"
     ),
     "promo_pinned": (
-        "⏳ Ваш бонус активен: скидка на обучение + личный разбор.\n"
+        "⏳ Ваш бонус активен: скидка на обучение + личный созвон.\n"
         "Осталось: {left}\n\n"
         "Забрать можно в сообщении выше 👆"
     ),
@@ -496,7 +494,7 @@ TXT = {
     ),
     "promo_drip": (
         "⏳ Бонус ещё активен.\n\n"
-        "Если хотите забрать скидку и личный разбор — кнопка выше 👆"
+        "Если хотите забрать скидку и личный созвон — кнопка выше 👆"
     ),
 }
 
@@ -515,7 +513,7 @@ BTN = {
     "students":   "Результаты учеников",
     "programs":   "💎 Посмотреть форматы обучения",
     "site":       "Открыть сайт с результатами",
-    "to_lead":    "🎁 Получить спец-цену в подарок (−20% на 24ч)",
+    "to_lead":    "🎁 Скидка −20% + личный созвон (24ч)",
     "lm_get":     "📘 Забрать гайд",
     "contact":    "Написать @vadjik",
     # лид-магнит
@@ -525,8 +523,8 @@ BTN = {
     "lm_goto":    "Перейти в канал",
     "lm_check":   "Я подписался ✅",
     # промо
-    "promo_get":  "🔥 Забрать скидку + разбор",
-    "promo_app":  "💎 Посмотреть программы со скидкой",
+    "promo_get":  "🔥 Забрать скидку + созвон",
+    "promo_app":  "💎 Открыть программы со скидкой",
 }
 
 
@@ -644,20 +642,36 @@ async def send_step(bot, uid, text, rows=None, skip_pause=False, **kwargs):
 # Выключить: PAUSES=0  |  /pauses — переключатель для админа
 
 PAUSES_ON = os.getenv("PAUSES", "1").strip().lower() not in ("0", "false", "no", "")
-CIRCLE_PAUSE_SEC = float(os.getenv("CIRCLE_PAUSE", "15") or "15")
-VIDEO_PAUSE_SEC = float(os.getenv("VIDEO_PAUSE", "40") or "40")
+CIRCLE_PAUSE_SEC = float(os.getenv("CIRCLE_PAUSE", "35") or "35")
+VIDEO_PAUSE_SEC = float(os.getenv("VIDEO_PAUSE", "90") or "90")
 TEXT_PAUSE_SEC = float(os.getenv("TEXT_PAUSE", "4") or "4")
 
+# Скорость чтения для индивидуальной паузы по тексту
+READ_WPM = int(os.getenv("READ_WPM", "220") or "220")     # слов в минуту
+MIN_TEXT_PAUSE = float(os.getenv("MIN_TEXT_PAUSE", "2") or "2")
+MAX_TEXT_PAUSE = float(os.getenv("MAX_TEXT_PAUSE", "18") or "18")
 
-async def pause_text(bot, chat_id):
-    """Пауза перед текстом: индикатор «печатает» + фиксированные секунды."""
+
+def read_time(text):
+    """Сколько секунд человеку нужно, чтобы прочитать этот текст.
+    Длинный текст → длинная пауза (но не больше MAX_TEXT_PAUSE)."""
+    if not text:
+        return TEXT_PAUSE_SEC
+    words = max(1, len(text.split()))
+    t = words / READ_WPM * 60
+    return max(MIN_TEXT_PAUSE, min(t, MAX_TEXT_PAUSE))
+
+
+async def pause_text(bot, chat_id, text=None):
+    """Пауза перед текстом: «печатает» + время на чтение ПРЕДЫДУЩЕГО.
+    Если text задан — пауза по его длине (умно). Иначе — фикс TEXT_PAUSE_SEC."""
     if not PAUSES_ON:
         return
     try:
         await bot.send_chat_action(chat_id, ChatAction.TYPING)
     except Exception:
         pass
-    await asyncio.sleep(TEXT_PAUSE_SEC)
+    await asyncio.sleep(read_time(text) if text else TEXT_PAUSE_SEC)
 
 
 async def pause_after_circle(bot, chat_id):
@@ -683,8 +697,9 @@ async def pause_after_video(bot, chat_id):
 
 
 async def send_text(bot, chat_id, text, **kwargs):
-    """Текстовое сообщение с паузой «печатает» перед отправкой."""
-    await pause_text(bot, chat_id)
+    """Текстовое сообщение с паузой по длине ТЕКСТА — больше текст,
+    дольше пауза, чтобы человек успел прочитать предыдущее сообщение."""
+    await pause_text(bot, chat_id, text=text)
     return await bot.send_message(chat_id, text, **kwargs)
 
 
@@ -884,6 +899,19 @@ async def lm_skip(update, context):
 async def lm_check(update, context):
     uid = update.effective_user.id
     bot = context.bot
+
+    # ТЕСТОВЫЙ РЕЖИМ: канал ещё не настроен — пропускаем проверку подписки
+    # и сразу выдаём гайд. Когда задашь CHANNEL_USERNAME в Railway,
+    # проверка автоматически включится.
+    if CHANNEL_USERNAME == "@ВПИШИ_КАНАЛ":
+        log.warning("CHANNEL_USERNAME не задан — гайд выдаётся без проверки (тестовый режим)")
+        await send_guide(bot, uid)
+        rec = u(uid)
+        rec["got_guide"] = True
+        save_state(STATE)
+        await send_step(bot, uid, TXT["lm_delivered"], [(BTN["to_lead"], "go_lead", False)])
+        return
+
     sub = await is_subscribed(bot, uid)
 
     if sub is None:
@@ -907,6 +935,7 @@ async def lm_check(update, context):
 
 
 async def send_guide(bot, chat_id):
+    """Отправляет гайд. Если файла нет — мягкая заглушка, не падает."""
     try:
         if GUIDE_FILE_ID:
             await bot.send_document(chat_id, GUIDE_FILE_ID)
@@ -915,11 +944,13 @@ async def send_guide(bot, chat_id):
             with open(GUIDE_PATH, "rb") as f:
                 await bot.send_document(chat_id, f, filename=GUIDE_FILENAME)
             return
-        log.error("guide not found: GUIDE_FILE_ID пуст и нет %s", GUIDE_PATH)
+        # гайда ещё нет — отправляем дружелюбную заглушку, бот не падает
+        log.warning("guide not found: GUIDE_FILE_ID пуст и нет %s — тестовая заглушка", GUIDE_PATH)
         await bot.send_message(
             chat_id,
-            "Гайд временно недоступен — напишите мне лично, пришлю вручную.",
-            reply_markup=kb([(BTN["contact"], CALL_LINK, True)]),
+            "📘 Гайд ещё готовится — пришлю вам сразу, как только будет готов.\n\n"
+            "А пока, если хотите забрать бонус и созвон со мной, "
+            "кнопка ниже 👇",
         )
     except Exception as e:
         log.error("send_guide failed: %s", e)
@@ -933,7 +964,7 @@ async def show_promo(context, uid, user, temperature):
     rec = u(uid)
 
     if not PROMO_SECRET:
-        # секрет не задан — не выдаём кривую ссылку, ведём на разбор
+        # секрет не задан — не выдаём кривую ссылку, ведём на созвон
         await send_step(bot, uid, TXT["promo_fallback"],
                         [(BTN["contact"], CALL_LINK, True)])
         log.warning("PROMO_SECRET не задан — промо не выдано, отдан контакт")
@@ -970,10 +1001,11 @@ async def show_promo(context, uid, user, temperature):
         await bot.pin_chat_message(uid, pin.message_id,
                                    disable_notification=True)
         rec["promo"]["pin_msg_id"] = pin.message_id
+        rec["promo"]["pin_started"] = int(time.time())  # для расчёта частоты обновлений
         save_state(STATE)
-        # обновляем закреп раз в 30 минут (не чаще — бережём лимиты Telegram)
-        context.application.job_queue.run_repeating(
-            promo_tick, interval=1800, first=1800,
+        # «Живой» таймер: первые 5 минут — каждые 15 сек, дальше каждые 30 мин
+        context.application.job_queue.run_once(
+            promo_tick, when=15,
             name=f"promotick_{uid}", data={"uid": uid},
         )
     except Exception as e:
@@ -988,30 +1020,38 @@ async def show_promo(context, uid, user, temperature):
 
 
 async def promo_tick(context: ContextTypes.DEFAULT_TYPE):
-    """Обновляет закреплённое сообщение с обратным отсчётом."""
+    """Обновляет закреплённое сообщение с обратным отсчётом.
+    Первые 5 минут обновляется каждые 15 сек (ощущается «живым»),
+    дальше — каждые 30 минут, чтобы не упереться в лимиты Telegram."""
     uid = context.job.data["uid"]
     rec = u(uid)
     promo = rec.get("promo") or {}
     pin_id = promo.get("pin_msg_id")
     deadline = promo.get("deadline", 0)
+    pin_started = promo.get("pin_started", int(time.time()))
     if not pin_id:
-        context.job.schedule_removal()
         return
     bot = context.bot
     if time.time() >= deadline:
-        # истекло — финальный текст, открепить, остановить джоб
+        # истекло — финальный текст, открепить, остановить
         try:
             await bot.edit_message_text(TXT["promo_expired"], uid, pin_id)
             await bot.unpin_chat_message(uid, pin_id)
         except Exception as e:
             log.error("promo expire failed: %s", e)
-        context.job.schedule_removal()
         return
     try:
         await bot.edit_message_text(
             TXT["promo_pinned"].format(left=fmt_left(deadline)), uid, pin_id)
     except Exception:
         pass  # текст не изменился или сообщение удалено — не страшно
+    # перепланируем следующий тик: первые 5 минут — каждые 15 сек, потом 30 мин
+    elapsed = time.time() - pin_started
+    next_in = 15 if elapsed < 300 else 1800
+    context.application.job_queue.run_once(
+        promo_tick, when=next_in,
+        name=f"promotick_{uid}", data={"uid": uid},
+    )
 
 
 async def promo_remind(context: ContextTypes.DEFAULT_TYPE):
@@ -1207,7 +1247,7 @@ async def go_students(update, context):
 
 
 async def go_lead(update, context):
-    """«Получить бонус и разбор» — промо (скидка + личный разбор)."""
+    """«Получить скидка и созвон» — промо (скидка + личный созвон)."""
     uid = update.effective_user.id
     bot = context.bot
     user = update.effective_user
@@ -1234,7 +1274,7 @@ async def go_lead(update, context):
         try:
             await bot.send_message(
                 ADMIN_ID,
-                f"🔥 НОВАЯ ЗАЯВКА — бонус (скидка + разбор)\n"
+                f"🔥 НОВАЯ ЗАЯВКА — бонус (скидка + созвон)\n"
                 f"Имя: {user.full_name}\n"
                 f"Username: {uname}\n"
                 f"ID: {user.id}\n"
