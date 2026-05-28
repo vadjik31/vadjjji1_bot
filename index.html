@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Amazon с Вадимом — программы и результаты</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --bg:#0c0d10; --card:#15171c; --card2:#1b1e25; --line:#262a33;
+    --txt:#eef0f4; --mut:#9aa1ad; --accent:#3b82f6;
+    --amber:#f59e0b; --blue:#3b82f6; --violet:#8b5cf6; --emerald:#10b981;
+    --rose:#f43f5e; --cyan:#06b6d4; --teal:#14b8a6; --orange:#f97316;
+    --indigo:#6366f1; --pink:#ec4899;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:15px;line-height:1.5;overscroll-behavior-y:none}
+  body{padding-bottom:96px}
+  .wrap{max-width:680px;margin:0 auto;padding:0 16px}
+
+  .hero{padding:24px 16px 8px;text-align:center}
+  .hero h1{font-size:24px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+  .hero p{color:var(--mut);font-size:14px}
+
+  .section-h{display:flex;align-items:center;gap:8px;margin:28px 0 12px}
+  .section-h .bar{width:4px;height:18px;border-radius:2px;background:var(--accent)}
+  .section-h h2{font-size:18px;font-weight:700}
+  .section-h .cnt{margin-left:auto;color:var(--mut);font-size:13px}
+
+  /* РЕЗУЛЬТАТЫ — карусель */
+  .res-scroll{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 12px;
+    scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+  .res-scroll::-webkit-scrollbar{display:none}
+  .res-card{flex:0 0 78%;max-width:280px;scroll-snap-align:center;
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    overflow:hidden;display:flex;flex-direction:column}
+  .res-card img{width:100%;height:150px;object-fit:cover;background:#000;cursor:pointer}
+  .res-meta{padding:12px 14px}
+  .res-num{font-size:22px;font-weight:800;line-height:1.1}
+  .res-lbl{color:var(--mut);font-size:12px;margin-bottom:6px}
+  .res-name{font-size:14px;font-weight:600}
+  .res-loc{color:var(--mut);font-size:12.5px}
+  .hint{text-align:center;color:var(--mut);font-size:12px;margin:-4px 0 4px}
+
+  /* ТАРИФЫ */
+  .tariff{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+  .tariff.popular{border-color:rgba(139,92,246,.5)}
+  .tariff.vip{border-color:rgba(16,185,129,.5)}
+  .tariff .badge{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;
+    padding:3px 10px;border-radius:20px;letter-spacing:.5px}
+  .badge.pop{background:rgba(139,92,246,.18);color:#c4b5fd}
+  .badge.vip{background:rgba(16,185,129,.18);color:#6ee7b7}
+  .t-name{font-size:19px;font-weight:800}
+  .t-sub{color:var(--mut);font-size:13px;margin-bottom:12px}
+  .t-price{font-size:30px;font-weight:800;letter-spacing:-1px}
+  .t-price small{font-size:14px;color:var(--mut);font-weight:600}
+  .t-result{font-size:13px;color:var(--mut);margin:6px 0 14px;
+    padding:8px 12px;background:var(--card2);border-radius:10px}
+  .t-feats{list-style:none;margin-bottom:14px}
+  .t-feats li{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;
+    padding:4px 0;color:var(--txt)}
+  .t-feats li.no{color:var(--mut)}
+  .t-feats .ic{flex:0 0 18px;font-weight:700}
+  .t-feats li .ic{color:var(--emerald)}
+  .t-feats li.no .ic{color:#5a5f6b}
+  .t-btn{width:100%;border:none;border-radius:12px;padding:13px;font-size:15px;
+    font-weight:700;color:#fff;cursor:pointer;background:var(--accent)}
+  .tariff.base .t-btn{background:#3f434d}
+  .tariff.flow .t-btn{background:var(--blue)}
+  .tariff.popular .t-btn{background:linear-gradient(90deg,#8b5cf6,#a855f7)}
+  .tariff.vip .t-btn{background:linear-gradient(90deg,#10b981,#14b8a6)}
+  .t-more{width:100%;background:none;border:1px solid var(--line);color:var(--mut);
+    border-radius:12px;padding:11px;font-size:13.5px;margin-top:8px;cursor:pointer}
+
+  /* БОНУСЫ */
+  .bonus-wrap{background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(245,158,11,.02));
+    border:1px solid rgba(245,158,11,.25);border-radius:18px;padding:18px}
+  .bonus-top{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+  .bonus-top b{font-size:16px}
+  .bonus-top .val{margin-left:auto;color:var(--amber);font-weight:800;font-size:18px}
+  .bonus-sub{color:var(--mut);font-size:13px;margin-bottom:14px}
+  .bonus-item{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+  .bonus-item .e{font-size:20px;flex:0 0 26px;text-align:center}
+  .bonus-item b{font-size:14px;display:block}
+  .bonus-item span{color:var(--mut);font-size:12.5px}
+
+  /* BOTTOM SHEET */
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);opacity:0;
+    pointer-events:none;transition:opacity .25s;z-index:40}
+  .sheet-bg.on{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-height:88vh;overflow-y:auto;
+    background:var(--bg);border-radius:20px 20px 0 0;border-top:1px solid var(--line);
+    transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);z-index:41;
+    padding:20px 18px 110px}
+  .sheet.on{transform:translateY(0)}
+  .sheet-grab{width:40px;height:4px;border-radius:2px;background:#3a3f49;
+    margin:0 auto 16px}
+  .sheet h3{font-size:21px;font-weight:800;margin-bottom:2px}
+  .sheet .ssub{color:var(--mut);font-size:13px;margin-bottom:14px}
+  .sheet .intro{font-size:14px;color:#cdd2db;margin-bottom:16px}
+  .sheet img.shot{width:100%;border-radius:12px;border:1px solid var(--line);margin:10px 0}
+  .sheet .blk{background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:14px;margin-bottom:12px}
+  .sheet .blk h4{font-size:15px;margin-bottom:6px}
+  .sheet .blk p{font-size:13.5px;color:var(--mut)}
+  .sheet .blk ul{margin:6px 0 0 18px;font-size:13.5px;color:#cdd2db}
+  .sheet .blk li{margin-bottom:4px}
+  .sum{background:linear-gradient(135deg,rgba(59,130,246,.1),transparent);
+    border:1px solid rgba(59,130,246,.2);border-radius:14px;padding:14px}
+  .sum h4{font-size:14px;margin-bottom:8px}
+  .sum li{font-size:13.5px;color:#cdd2db;margin:0 0 5px 18px}
+  .free{display:inline-block;background:rgba(16,185,129,.18);color:#6ee7b7;
+    font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:6px}
+
+  /* image viewer */
+  .viewer{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:60;
+    display:none;align-items:center;justify-content:center;padding:16px}
+  .viewer.on{display:flex}
+  .viewer img{max-width:100%;max-height:90vh;border-radius:8px}
+  .viewer .x{position:absolute;top:14px;right:18px;color:#fff;font-size:30px;cursor:pointer}
+
+  /* sticky CTA */
+  .cta-bar{position:fixed;left:0;right:0;bottom:0;background:rgba(12,13,16,.95);
+    backdrop-filter:blur(10px);border-top:1px solid var(--line);
+    padding:12px 16px;z-index:30}
+  .cta-bar .inner{max-width:680px;margin:0 auto;display:flex;gap:10px}
+  .cta-main{flex:1;background:linear-gradient(90deg,#10b981,#14b8a6);color:#fff;
+    border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;cursor:pointer}
+  .cta-site{flex:0 0 auto;background:var(--card);border:1px solid var(--line);
+    color:var(--txt);border-radius:13px;padding:14px 16px;font-size:14px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Amazon с Вадимом</h1>
+  <p>Программы обучения, результаты учеников и бонусы</p>
+</div>
+
+<div class="wrap">
+
+  <!-- РЕЗУЛЬТАТЫ -->
+  <div class="section-h"><span class="bar" style="background:var(--emerald)"></span>
+    <h2>Результаты учеников</h2><span class="cnt" id="resCnt"></span></div>
+  <p class="hint">← листайте карточки →</p>
+  <div class="res-scroll" id="resScroll"></div>
+
+  <!-- ТАРИФЫ -->
+  <div class="section-h"><span class="bar" style="background:var(--violet)"></span>
+    <h2>Программы обучения</h2></div>
+  <div id="tariffs"></div>
+
+  <!-- БОНУСЫ -->
+  <div class="section-h"><span class="bar" style="background:var(--amber)"></span>
+    <h2>Бонусы в подарок</h2></div>
+  <div class="bonus-wrap">
+    <div class="bonus-top"><b>Входят бесплатно в каждый тариф</b>
+      <span class="val">~$1750</span></div>
+    <div class="bonus-sub">Эти продукты вы получаете в подарок при любом тарифе.</div>
+    <div id="bonuses"></div>
+  </div>
+
+</div>
+
+<!-- BOTTOM SHEET -->
+<div class="sheet-bg" id="sheetBg" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"><div class="sheet-grab"></div><div id="sheetBody"></div></div>
+
+<!-- IMAGE VIEWER -->
+<div class="viewer" id="viewer" onclick="this.classList.remove('on')">
+  <span class="x">&times;</span><img id="viewerImg" src="" alt="">
+</div>
+
+<!-- CTA -->
+<div class="cta-bar"><div class="inner">
+  <button class="cta-main" onclick="book()">Записаться на разбор</button>
+  <button class="cta-site" onclick="openSite()">Сайт</button>
+</div></div>
+
+<script>
+const TG = window.Telegram ? window.Telegram.WebApp : null;
+if (TG) { TG.ready(); TG.expand(); }
+
+// ссылки можно переопределить через query (?contact=...&site=...)
+const params = new URLSearchParams(location.search);
+const CONTACT = params.get('contact') || 'https://t.me/vadjik';
+const SITE    = params.get('site')    || 'https://vadjik.com/';
+
+const FLAGS = {"Германия":"🇩🇪","США":"🇺🇸","Польша":"🇵🇱","Италия":"🇮🇹",
+"Испания":"🇪🇸","Чехия":"🇨🇿","Европа":"🇪🇺","Австрия":"🇦🇹","Нидерланды":"🇳🇱",
+"Франция":"🇫🇷","Ирландия":"🇮🇪","Португалия":"🌍","Канада":"🌍"};
+
+const COLORS = {emerald:"#10b981",violet:"#8b5cf6",amber:"#f59e0b",blue:"#3b82f6",
+rose:"#f43f5e",cyan:"#06b6d4",orange:"#f97316",teal:"#14b8a6",indigo:"#6366f1",pink:"#ec4899"};
+
+const STUDENTS = [
+{name:"Измаил",loc:"Германия",mkt:"Amazon Германия",res:"€472,956",lbl:"продажи",img:"images/izmail-result.png",c:"amber"},
+{name:"Алексей",loc:"США",mkt:"Amazon США",res:"$65,887",lbl:"за месяц",img:"images/alexey-result.png",c:"emerald"},
+{name:"Вадим",loc:"США",mkt:"Amazon США",res:"$19,267",lbl:"за месяц",img:"images/vadim-result.png",c:"violet"},
+{name:"Дмитрий",loc:"Италия",mkt:"Amazon Италия",res:"€39,818",lbl:"за месяц",img:"images/dmitriy-result.png",c:"amber"},
+{name:"Валерия",loc:"Польша",mkt:"Amazon Германия",res:"€32,348",lbl:"за месяц",img:"images/valeria-result.png",c:"blue"},
+{name:"Анатолий",loc:"Европа",mkt:"Amazon ЕС",res:"€17,952",lbl:"продажи",img:"images/anatoliy-result.png",c:"rose"},
+{name:"Елена",loc:"Италия",mkt:"Amazon Италия",res:"€10,720",lbl:"за месяц",img:"images/elena-result.png",c:"rose"},
+{name:"Кирил",loc:"Польша",mkt:"Amazon США",res:"$3,245",lbl:"за день",img:"images/kiril-result.png",c:"cyan"},
+{name:"Евгений",loc:"Италия",mkt:"Amazon Италия",res:"€9,256",lbl:"за месяц",img:"images/evgeniy-result.png",c:"orange"},
+{name:"Андрей",loc:"Португалия",mkt:"Amazon США",res:"$2,170",lbl:"продажи",img:"images/andrey-result.png",c:"teal"},
+{name:"Марина",loc:"Канада",mkt:"Amazon Канада",res:"1870 CAD",lbl:"за месяц",img:"images/marina-result.png",c:"indigo"},
+{name:"Александр",loc:"Испания",mkt:"Amazon США",res:"316 units",lbl:"продано",img:"images/alexander-result.png",c:"pink"},
+{name:"Ученик",loc:"Германия",mkt:"Amazon США",res:"$1,279",lbl:"за месяц",img:"images/anonymous-result.png",c:"emerald"},
+{name:"Дария",loc:"Италия",mkt:"Amazon Италия",res:"€485",lbl:"сегодня",img:"images/daria-result.png",c:"violet"},
+{name:"Денис",loc:"Польша",mkt:"Amazon США",res:"$236",lbl:"первая неделя",img:"images/denis-result.png",c:"amber"},
+{name:"Никита",loc:"Германия",mkt:"Amazon Германия",res:"€114",lbl:"за неделю",img:"images/nikita-result.png",c:"blue"},
+{name:"Игорь",loc:"Италия",mkt:"Amazon Италия",res:"€1,500+",lbl:"за месяц",img:"images/igor-result.png",c:"rose"},
+{name:"Игорь",loc:"США",mkt:"Amazon США",res:"$4,503",lbl:"за месяц",img:"images/igor2-result.png",c:"cyan"},
+{name:"Андрей",loc:"Ирландия",mkt:"Amazon США",res:"$9,516",lbl:"продажи",img:"images/andrey2-result.png",c:"orange"}
+];
+
+const BONUSES = [
+{e:"🔓",n:"Ангейтинг",d:"Открытие закрытых брендов"},
+{e:"📄",n:"Поставщик и инвойс",d:"Критерии проверки Amazon"},
+{e:"🔎",n:"Sourcing Pack",d:"Поиск товаров и поставщиков"},
+{e:"🤖",n:"ASIN Checker",d:"Проверка открытых/закрытых товаров"},
+{e:"📊",n:"Репрайсер",d:"Настройка под прибыль"}
+];
+
+const TARIFFS = [
+{
+ id:"base",cls:"base",name:"Обучаюсь сам",sub:"Самостоятельное обучение",
+ price:700,result:"Знание процесса + старт без наставника",
+ feats:[["Все 75 видео-уроков",1],["Авторские софты",1],["Доступ навсегда",1],
+        ["Записи 9 созвонов",1],["Личные созвоны",0]],
+ cta:"Начать обучение",
+ detail:{
+   intro:"Полный доступ к платформе SkillSpace — видеоматериалы и домашние задания.",
+   blocks:[
+     {h:"Как выглядит курс",img:"images/course-screenshot.png",p:"75 видеоуроков с домашними заданиями."},
+     {h:"Авторский софт ASIN Checker",free:1,p:"Проверка открытых и закрытых товаров. Доступ навсегда. Обычная цена $350."},
+     {h:"Записи 9 созвонов прошлых потоков",p:"Полные записи всех групповых созвонов."},
+     {h:"Поддержка в чате — 1 месяц",p:"Любой вопрос по Amazon — пишете в чат. Личных созвонов в этом тарифе нет."}
+   ],
+   summary:["Платформа с 75 видеоуроками","Все бонусы ($1750 в подарок)","Записи 9 созвонов","1 месяц поддержки в чате"]
+ }
+},
+{
+ id:"flow",cls:"flow",name:"Поток",sub:"Групповое обучение",
+ price:830,result:"Первые продажи + понимание процесса",
+ feats:[["Все 75 видео-уроков",1],["9 групповых созвонов",1],["2 личных созвона",1],
+        ["1 поставщик для старта",1],["Поддержка в чате 24/7",1]],
+ cta:"Забронировать место",
+ detail:{
+   intro:"За 1 месяц — структурированная система запуска вместо месяцев экспериментов.",
+   blocks:[
+     {h:"Видео-курс на SkillSpace",img:"images/course-screenshot.png",p:"75 уроков + домашние задания."},
+     {h:"Авторский софт ASIN Checker",free:1,p:"Обычная цена $350 — для вас бесплатно."},
+     {h:"9 групповых созвонов",img:"images/flow-call-1.png",
+      ul:["Раз в неделю по расписанию","Интерактив — можно задавать вопросы","Все записываются","Удобное время для группы"]},
+     {h:"После созвона",img:"images/group-chat.png",p:"Запись каждого созвона сбрасывается в группу."},
+     {h:"План 9 созвонов",ul:["Юр. оформление","Регистрация аккаунта","Поиск поставщиков","Выбор товаров","Глубокий анализ","Prep-центры","Отправка на Amazon","Аналитика","Масштабирование"]}
+   ],
+   summary:["Видео-курс (75 уроков)","Все бонусы ($1750)","9 групповых созвонов по плану","3 месяца поддержки после","Довод до первых продаж при старании","Roadmap 9 недель до продаж"]
+ }
+},
+{
+ id:"advanced",cls:"popular",name:"Продвинутый",sub:"С личным менторством",
+ price:1500,result:"Стабильные продажи + система",badge:"ПОПУЛЯРНЫЙ",badgeCls:"pop",
+ feats:[["Всё из «Обучаюсь сам»",1],["4 личных созвона",1],["3 поставщика для старта",1],
+        ["Выбор рынка: США или ЕС",1],["4 месяца поддержки",1]],
+ cta:"Начать обучение",
+ detail:{
+   intro:"Всё из «Обучаюсь сам» + личное менторство и ресурсы для быстрого старта.",
+   blocks:[
+     {h:"3 поставщика для старта",p:"3 оптовика, которые одобрят аккаунт и закуп от $4,000 с ROI от 20%."},
+     {h:"4 личных созвона",p:"По 1.5 часа. Разбор вашего кабинета и ситуации напрямую с Вадимом."},
+     {h:"4 месяца поддержки в чате",p:"Любой вопрос по Amazon — ответ от Вадима."},
+     {h:"Также входит",ul:["9 записей групповых созвонов","Довод до первых продаж","Немедленный старт","75 видео-уроков"]}
+   ],
+   summary:["Всё из базового тарифа","4 личных созвона по 1.5ч","3 поставщика","Выбор рынка США/ЕС","4 месяца поддержки","Все бонусы ($1750)"]
+ }
+},
+{
+ id:"pro",cls:"vip",name:"Про уровень",sub:"Максимальный результат",
+ price:5800,result:"Бизнес под ключ, цель $15K+ оборота/мес",badge:"VIP",badgeCls:"vip",
+ feats:[["Всё из «Продвинутого»",1],["12 личных созвонов",1],["10 поставщиков + 50 товаров",1],
+        ["2 сайта + CRM + воронка",1],["6 месяцев личной поддержки",1]],
+ cta:"Забронировать VIP",
+ detail:{
+   intro:"Всё из «Продвинутого» + максимальное сопровождение для бизнеса с целью $15K+/мес.",
+   blocks:[
+     {h:"Масштаб",ul:["12 личных созвонов","10 поставщиков + 50 товаров","2 сайта + CRM + воронка продаж","6 месяцев личной поддержки"]},
+     {h:"VIP Эксклюзив — $3,000+ в подарок",free:1,
+      ul:["Кастомный веб-сайт (обычно $1,500+) — сегментация, оплата, премиум-дизайн","CRM-система под вас (обычно $1,500+) — контроль сотрудников, брендов, воронки"]},
+     {h:"Цель",p:"$15,000+ оборота/месяц. Бизнес под ключ с полным сопровождением."}
+   ],
+   summary:["Всё из «Продвинутого»","12 личных созвонов","10 поставщиков + 50 товаров","Кастомный сайт + CRM ($3,000+)","6 месяцев поддержки","Цель $15K+ оборота/мес"]
+ }
+}
+];
+
+// ---- render результаты ----
+document.getElementById('resCnt').textContent = STUDENTS.length + " учеников";
+document.getElementById('resScroll').innerHTML = STUDENTS.map(s=>{
+  const col = COLORS[s.c]||'#fff';
+  return `<div class="res-card">
+    <img src="${s.img}" alt="${s.name}" onclick="viewImg('${s.img}')" loading="lazy">
+    <div class="res-meta">
+      <div class="res-num" style="color:${col}">${s.res}</div>
+      <div class="res-lbl">${s.lbl}</div>
+      <div class="res-name">${FLAGS[s.loc]||''} ${s.name}</div>
+      <div class="res-loc">${s.mkt}</div>
+    </div></div>`;
+}).join('');
+
+// ---- render тарифы ----
+document.getElementById('tariffs').innerHTML = TARIFFS.map((t,i)=>{
+  const badge = t.badge?`<span class="badge ${t.badgeCls}">${t.badge}</span>`:'';
+  const feats = t.feats.map(f=>`<li class="${f[1]?'':'no'}"><span class="ic">${f[1]?'✓':'×'}</span>${f[0]}</li>`).join('');
+  return `<div class="tariff ${t.cls}">${badge}
+    <div class="t-name">${t.name}</div>
+    <div class="t-sub">${t.sub}</div>
+    <div class="t-price">$${t.price.toLocaleString()} <small>USD</small></div>
+    <div class="t-result">${t.result}</div>
+    <ul class="t-feats">${feats}</ul>
+    <button class="t-btn" onclick="book()">${t.cta}</button>
+    <button class="t-more" onclick="openSheet(${i})">Что входит подробно →</button>
+  </div>`;
+}).join('');
+
+// ---- render бонусы ----
+document.getElementById('bonuses').innerHTML = BONUSES.map(b=>
+  `<div class="bonus-item"><span class="e">${b.e}</span>
+    <div><b>${b.n}</b><span>${b.d}</span></div></div>`).join('');
+
+// ---- bottom sheet ----
+function openSheet(i){
+  const t = TARIFFS[i], d = t.detail;
+  let html = `<h3>${t.name}${t.badge?` <span class="free">${t.badge}</span>`:''}</h3>
+    <div class="ssub">${t.sub} · $${t.price.toLocaleString()}</div>
+    <div class="intro">${d.intro}</div>`;
+  d.blocks.forEach(b=>{
+    html += `<div class="blk"><h4>${b.h}${b.free?' <span class="free">БЕСПЛАТНО</span>':''}</h4>`;
+    if(b.img) html += `<img class="shot" src="${b.img}" onclick="viewImg('${b.img}')">`;
+    if(b.p) html += `<p>${b.p}</p>`;
+    if(b.ul) html += `<ul>${b.ul.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+    html += `</div>`;
+  });
+  html += `<div class="sum"><h4>Итог: что получаете</h4><ul>${d.summary.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+  document.getElementById('sheetBody').innerHTML = html;
+  document.getElementById('sheet').classList.add('on');
+  document.getElementById('sheetBg').classList.add('on');
+}
+function closeSheet(){
+  document.getElementById('sheet').classList.remove('on');
+  document.getElementById('sheetBg').classList.remove('on');
+}
+
+// ---- image viewer ----
+function viewImg(src){
+  document.getElementById('viewerImg').src = src;
+  document.getElementById('viewer').classList.add('on');
+}
+
+// ---- CTA ----
+function book(){
+  if(TG && TG.openTelegramLink){ TG.openTelegramLink(CONTACT); }
+  else { window.open(CONTACT,'_blank'); }
+}
+function openSite(){
+  if(TG && TG.openLink){ TG.openLink(SITE); }
+  else { window.open(SITE,'_blank'); }
+}
+</script>
+</body>
+</html>
