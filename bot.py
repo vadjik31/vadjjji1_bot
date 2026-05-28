@@ -377,6 +377,9 @@ TXT = {
     "menu_results": (
         "Результаты учеников — на сайте, со скринами и цифрами 👇"
     ),
+    "menu_about": (
+        "Коротко о том, кто я, чем занимаюсь и почему Amazon — в статье 👇"
+    ),
     "programs_text": (
         "Вот варианты обучения — от «разберусь сам» до «под ключ» 👇\n\n"
         "1️⃣ Обучаюсь сам — $750\n"
@@ -541,6 +544,7 @@ BTN = {
     "programs":   "💎 Открыть мини-приложение",
     "site":       "Открыть сайт с результатами",
     "results_open": "Открыть результаты на сайте",
+    "about_open":   "Читать «Кто я»",
     "to_lead":    "🎁 Скидка −20% (24 ч)",
     "lm_get":     "📘 Забрать PDF-гайд",
     "contact":    "Написать Вадиму",
@@ -785,7 +789,9 @@ def programs_btn():
 
 def main_menu_filter():
     """Только нажатия кнопок нижнего меню."""
-    labels = "|".join(re.escape(x) for x in (MENU_FORMATS, MENU_RESULTS, MENU_GUIDE))
+    labels = "|".join(re.escape(x) for x in (
+        MENU_FORMATS, MENU_RESULTS, MENU_GUIDE, MENU_ABOUT,
+    ))
     return filters.Regex(f"^({labels})$")
 
 
@@ -802,7 +808,7 @@ def main_reply_keyboard():
     else:
         rows.append([KeyboardButton(MENU_FORMATS)])
     rows.append([KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)])
-    rows.append([KeyboardButton(MENU_ABOUT, url=ABOUT_LINK)])
+    rows.append([KeyboardButton(MENU_ABOUT)])
     return ReplyKeyboardMarkup(
         rows, resize_keyboard=True, is_persistent=True,
     )
@@ -1660,9 +1666,18 @@ async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     uid = update.effective_user.id
     text = msg.text.strip()
-    if text not in (MENU_FORMATS, MENU_RESULTS, MENU_GUIDE):
+    if text not in (MENU_FORMATS, MENU_RESULTS, MENU_GUIDE, MENU_ABOUT):
         return
     bot = context.bot
+    if text == MENU_ABOUT:
+        await send_with_main_menu(bot, uid, TXT["menu_about"], clear_inline=False)
+        await bot.send_message(
+            uid, "👇",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton(BTN["about_open"], url=ABOUT_LINK),
+            ]]),
+        )
+        return
     if text == MENU_RESULTS:
         await send_with_main_menu(bot, uid, TXT["menu_results"], clear_inline=False)
         await bot.send_message(
