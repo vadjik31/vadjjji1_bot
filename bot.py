@@ -125,14 +125,14 @@ MEDIA = {
 
     # ВИДЕО 2 — как работает механика. ⬇️ впиши реальную длину в "sec".
     "video_2":       {
-        "file_id": "BQACAgIAAxkBAAMbahhQRlHSqn8kmwABaqjx-J74TjOjAALHoQACHH-4SDBaQh9qb6shOwQ",
+        "file_id": "BQACAgIAAxkBAAMdahhQWH8nZmU6aCjyKcSi87oVqCYAAsuhAAIcf7hI4NDb87GMAgs7BA",
         "kind": "document",
         "sec": 90,
     },
 
     # ВИДЕО 3 — кому НЕ стоит. ⬇️ впиши реальную длину в "sec".
     "video_3":       {
-        "file_id": "BQACAgIAAxkBAAMdahhQWH8nZmU6aCjyKcSi87oVqCYAAsuhAAIcf7hI4NDb87GMAgs7BA",
+        "file_id": "BQACAgIAAxkBAAMbahhQRlHSqn8kmwABaqjx-J74TjOjAALHoQACHH-4SDBaQh9qb6shOwQ",
         "kind": "document",
         "sec": 90,
     },
@@ -199,39 +199,35 @@ DRIP_HOURS = {
 
 TXT = {
     "start": (
-        "$750 чистыми на Amazon.\n\n"
-        "Это не история про миллионные обороты и не «кнопку, которая "
-        "печатает деньги».\n\n"
-        "Это первый нормальный результат Игоря. Он пришёл без опыта и "
-        "сначала вообще не понимал, с чего начать: где искать товар, как "
-        "не купить ерунду и как не потерять деньги на первой закупке.\n\n"
-        "Внутри покажу путь простыми словами:\n\n"
-        "🎬 как Игорь вышел на первую прибыль\n"
-        "⚙️ как работает заработок на Amazon\n"
-        "🙅 почему многие так и не начинают, хотя могли бы\n\n"
-        "Сначала коротко расскажу, кто я и почему вообще могу об этом "
-        "говорить 👇"
+        "$750 чистыми.\n\n"
+        "Знаю, кому-то это «мало», кому-то — «отлично». Спорить не "
+        "буду — лучше покажу.\n\n"
+        "Это первый результат Игоря. Парень с нуля, без опыта. Через "
+        "несколько месяцев та же сумма стала его ДНЕВНОЙ выручкой. "
+        "А другой человек закрыл год на €472 000.\n\n"
+        "$750 → $750 в день → €472 000 в год.\n\n"
+        "И все они прошли один и тот же путь. В трёх коротких видео "
+        "покажу, какой именно:\n\n"
+        "🎬 С чего Игорь начал и как добрался до первой прибыли\n"
+        "⚙️ Что превращает $750 в стабильный доход\n"
+        "🙅 Кому за это лучше НЕ браться\n\n"
+        "15 минут — и картина сложится. Сначала пара слов о том, кто я 👇"
     ),
     "after_circle_intro": (
-        "Теперь вы понимаете, кто я и почему занимаюсь Amazon 🙂\n\n"
-        "Дальше — история Игоря.\n\n"
-        "Он начинал без опыта. Не знал, где брать товары, как проверять "
-        "их перед закупкой и как понять, останется ли прибыль.\n\n"
-        "Я коротко покажу, что мы сделали: где он сначала ошибся, как "
-        "исправил ошибки, какой товар нашёл и как вышел на первые чистые "
-        "деньги.\n\n"
-        "Смотрите 👇"
+        "Теперь вы знаете, кто перед вами 🙂\n\n"
+        "Прежде чем покажу историю Игоря — гляньте, к чему ребята "
+        "приходят, когда механика отлажена. Это и есть тот «потолок», "
+        "к которому Игорь идёт со своих первых $750 👇"
+    ),
+    "proofs_v1_caption": (
+        "Разные страны, разные суммы, разные сроки. Но все они начинали "
+        "ровно там же, где Игорь — с нуля и с первой небольшой прибыли.\n\n"
+        "А теперь — как именно начинался путь у Игоря. Это одна минута 👇"
     ),
     "before_v1": (
         "Включайте 👇\n\n"
-        "Сейчас покажу путь Игоря: от полного непонимания до первой "
-        "прибыльной закупки.\n\n"
-        "Важно досмотреть до конца — там видно, что результат появился "
-        "не из-за удачи, а из-за нормальной проверки товара перед покупкой."
-    ),
-    "proofs_v1_caption": (
-        "Вот такие результаты возможны на Amazon — разные страны, разные "
-        "суммы. Это не уникальный случай 👇"
+        "Тут без монтажа и красивых обещаний — просто шаг за шагом: с "
+        "чего человек начал, где ошибся, как исправил и к чему пришёл."
     ),
     "after_v1": (
         "Вот почему этот пример важен.\n\n"
@@ -642,6 +638,9 @@ async def send_step(bot, uid, text, rows=None, skip_pause=False, **kwargs):
 # Выключить: PAUSES=0  |  /pauses — переключатель для админа
 
 PAUSES_ON = os.getenv("PAUSES", "1").strip().lower() not in ("0", "false", "no", "")
+# FAST_MODE: только медиа (видео+кружки) идут без пауз, текст с обычными
+# (для быстрого ручного теста воронки). Переключатель — команда /fast.
+FAST_MODE = False
 CIRCLE_PAUSE_SEC = float(os.getenv("CIRCLE_PAUSE", "35") or "35")
 VIDEO_PAUSE_SEC = float(os.getenv("VIDEO_PAUSE", "90") or "90")
 TEXT_PAUSE_SEC = float(os.getenv("TEXT_PAUSE", "4") or "4")
@@ -675,8 +674,9 @@ async def pause_text(bot, chat_id, text=None):
 
 
 async def pause_after_circle(bot, chat_id):
-    """После кружка — дать досмотреть, затем следующий текст."""
-    if not PAUSES_ON:
+    """После кружка — дать досмотреть, затем следующий текст.
+    В FAST_MODE пауза пропускается (видео-паузы быстро, текст — нормально)."""
+    if not PAUSES_ON or FAST_MODE:
         return
     try:
         await bot.send_chat_action(chat_id, ChatAction.TYPING)
@@ -686,8 +686,8 @@ async def pause_after_circle(bot, chat_id):
 
 
 async def pause_after_video(bot, chat_id):
-    """После видео — дать досмотреть, затем следующий шаг."""
-    if not PAUSES_ON:
+    """После видео — дать досмотреть. В FAST_MODE — без паузы."""
+    if not PAUSES_ON or FAST_MODE:
         return
     try:
         await bot.send_chat_action(chat_id, ChatAction.RECORD_VIDEO)
@@ -1136,7 +1136,13 @@ async def go_intro(update, context):
     bot = context.bot
     await send_circle(bot, uid, "circle_intro")
     await pause_after_circle(bot, uid)
-    await send_step(bot, uid, TXT["after_circle_intro"],
+    # Мост: "вот к чему приходят, когда механика отлажена"
+    await send_text(bot, uid, TXT["after_circle_intro"])
+    # СРАЗУ скрины с большими цифрами — чтобы $750 в видео ниже
+    # воспринимались как начало пути, а не как «потолок».
+    await send_proofs(bot, uid, PROOFS_AFTER_V1, TXT["proofs_v1_caption"])
+    await pause_text(bot, uid, text=TXT["proofs_v1_caption"])
+    await send_step(bot, uid, TXT["before_v1"],
                     [(BTN["to_v1"], "go_v1", False)], skip_pause=True)
     set_step(uid, "intro")
 
@@ -1144,11 +1150,9 @@ async def go_intro(update, context):
 async def go_v1(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await send_text(bot, uid, TXT["before_v1"])
     await send_media_file(bot, uid, "video_1")
     await pause_after_video(bot, uid)
-    await send_proofs(bot, uid, PROOFS_AFTER_V1, TXT["proofs_v1_caption"])
-    await pause_text(bot, uid)
+    # Скрины уже показаны ДО видео — здесь сразу к выводу про Игоря.
     await send_step(bot, uid, TXT["after_v1"],
                     [(BTN["to_v2"], "go_v2", False)], skip_pause=True)
     set_step(uid, "v1")
@@ -1515,23 +1519,44 @@ async def cmd_programs(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_pauses(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Переключает паузы между сообщениями (для тебя — посмотреть оба
     режима: с паузами как у клиентов, и без — для быстрого просмотра)."""
-    global PAUSES_ON
+    global PAUSES_ON, FAST_MODE
     if update.effective_user.id != ADMIN_ID:
         return
     PAUSES_ON = not PAUSES_ON
+    FAST_MODE = False  # сбрасываем fast при общем переключении
     if PAUSES_ON:
         txt = (
             f"⏳ Паузы ВКЛЮЧЕНЫ — как у клиентов:\n"
             f"кружок → {int(CIRCLE_PAUSE_SEC)}с, видео → {int(VIDEO_PAUSE_SEC)}с, "
-            f"текст → {int(TEXT_PAUSE_SEC)}с + «печатает».\n\n"
-            f"Напиши /pauses ещё раз, чтобы выключить и пройти воронку быстро."
+            f"текст → индивидуально (2–18с) + «печатает».\n\n"
+            f"Напиши /pauses — выкл всё / /fast — выкл только видео+кружки."
         )
     else:
         txt = (
             "⚡ Паузы ВЫКЛЮЧЕНЫ — сообщения идут сразу.\n\n"
-            "Напиши /pauses ещё раз, чтобы вернуть живой темп."
+            "Напиши /pauses ещё раз — вернуть."
         )
     await update.message.reply_text(txt)
+
+
+async def cmd_fast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Быстрый режим теста: видео и кружки проматываются мгновенно,
+    но текст идёт с нормальной паузой по длине — чтобы читалось живо,
+    а время не съедалось на ожидание медиа."""
+    global FAST_MODE, PAUSES_ON
+    if update.effective_user.id != ADMIN_ID:
+        return
+    FAST_MODE = not FAST_MODE
+    PAUSES_ON = True
+    if FAST_MODE:
+        await update.message.reply_text(
+            "⏩ FAST-режим ВКЛ — видео и кружки без пауз, текст по длине.\n"
+            "Удобно быстро проходить воронку.\n\n/fast — выкл."
+        )
+    else:
+        await update.message.reply_text(
+            "FAST-режим ВЫКЛ — паузы как обычно (видео+кружки в полном)."
+        )
 
 
 async def on_error(update, context):
@@ -1570,6 +1595,7 @@ def main():
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("programs", cmd_programs))
     app.add_handler(CommandHandler("pauses", cmd_pauses))
+    app.add_handler(CommandHandler("fast", cmd_fast))
     app.add_handler(CommandHandler("id",    cmd_id))
     app.add_handler(CommandHandler("stats", cmd_stats))
     app.add_handler(CommandHandler("report", cmd_report))
