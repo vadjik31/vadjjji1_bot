@@ -474,6 +474,10 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO
 )
 log = logging.getLogger("amazon_bot")
+# Убираем спам HTTP-запросов в логах (в их URL виден токен бота).
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("telegram").setLevel(logging.WARNING)
+logging.getLogger("apscheduler").setLevel(logging.WARNING)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.getenv("DATA_DIR", BASE_DIR)
@@ -1373,6 +1377,18 @@ async def cmd_programs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await go_programs(update, context)
 
 
+async def on_error(update, context):
+    """Логирует ошибки аккуратно, без пугающих трейсбеков в консоль.
+    409 Conflict при редеплое (на секунду два экземпляра) — не страшно."""
+    err = context.error
+    if "Conflict" in str(err):
+        log.warning("Conflict (обычно при перезапуске — два экземпляра на "
+                    "секунду). Если повторяется постоянно — проверь, что бот "
+                    "не запущен где-то ещё.")
+        return
+    log.error("Ошибка при обработке апдейта: %s", err)
+
+
 def main():
     if not BOT_TOKEN:
         print("ОШИБКА: переменная окружения BOT_TOKEN не задана.")
@@ -1407,6 +1423,7 @@ def main():
         | filters.Document.ALL,
         grab_file_id,
     ))
+    app.add_error_handler(on_error)
 
     log.info("Бот запущен. ADMIN_ID=%s, канал=%s, DATA=%s",
              ADMIN_ID, CHANNEL_USERNAME, STATE_FILE)
