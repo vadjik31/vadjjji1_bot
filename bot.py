@@ -48,7 +48,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 
 ADMIN_ID  = int(os.getenv("ADMIN_ID", "0") or "0") or 630926654
 
-# Ссылка для созвона/контакта — на твою личку.
+# Ссылка для контакта — на твою личку.
 CALL_LINK = os.getenv("CALL_LINK", "").strip() or "https://t.me/vadjik"
 
 # Ссылка на твой сайт с результатами учеников.
@@ -68,7 +68,7 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip()
 #   DISCOUNT_URL   — страница скидок на сайте.
 #   PROMO_HOURS    — на сколько часов даётся персональная скидка.
 #
-#   Бонус к скидке — личный созвон с Вадимом (текст в TXT["promo_*"]).
+#   Бонус — персональная скидка на обучение (текст в TXT["promo_*"]).
 #   Промо выдаётся ТЁПЛЫМ и ГОРЯЧИМ после квиза (не холодным).
 # ──────────────────────────────────────────────────────────────────────
 
@@ -232,7 +232,9 @@ TXT = {
         "⚙️ как работает заработок на Amazon\n"
         "🙅 почему многие так и не начинают, хотя могли бы\n\n"
         "Сначала коротко расскажу, кто я и почему вообще могу об этом "
-        "говорить 👇"
+        "говорить 👇\n\n"
+        "🎁 В конце пути — бесплатный PDF «3 ошибки новичка на Amazon»: "
+        "что ломает старт и как действовать правильно до первой закупки."
     ),
     "after_circle_intro": (
         "Теперь вы понимаете, кто я и почему занимаюсь Amazon 🙂\n\n"
@@ -332,8 +334,7 @@ TXT = {
         "и честный разбор страхов."
     ),
     "after_v3": (
-        "Дальше — как пройти этот путь без хаоса и лишних ошибок.\n\n"
-        "Об этом коротко в следующем кружке 👇"
+        "Дальше — как пройти этот путь без хаоса и лишних ошибок 👇"
     ),
     "after_v1_proofs": (
         "Готовы к следующему шагу? 👇\n\n"
@@ -346,73 +347,72 @@ TXT = {
         "начинают."
     ),
     "offer_next": (
-        "Посмотрели форматы? 👇\n\n"
-        "Дальше — что входит в бонусы-инструменты и как забрать личный "
-        "разбор."
+        "Посмотрели, что входит? 👇\n\n"
+        "Дальше — пакеты обучения и мини-приложение с форматами."
     ),
     "offer_gift_next": (
-        "Понятно, что даётся в подарок? 👇\n\n"
-        "Осталось — как забрать бонус и разобрать вашу ситуацию."
+        "Посмотрели форматы? 👇\n\n"
+        "Дальше — какие инструменты входят в пакеты обучения."
     ),
     "after_fork_circle": (
         "Смотрите.\n\n"
-        "Разобраться самому можно. В интернете есть видео, статьи, чаты "
-        "и куски информации.\n\n"
-        "Проблема в другом: новичок обычно не понимает, что важно, а что "
-        "нет.\n\n"
-        "Где нормальный поставщик, а где риск.\n"
-        "Где товар действительно можно брать, а где цифры красивые только "
-        "на первый взгляд.\n"
-        "Где всё безопасно, а где потом могут быть проблемы с Amazon.\n\n"
-        "Поэтому я сделал формат, где можно пройти этот путь со мной: по "
-        "шагам, с проверками, инструментами и поддержкой.\n\n"
-        "Сейчас покажу, что туда входит 👇"
+        "Разобраться самому можно. В интернете хватает видео, чатов и "
+        "кусочков информации.\n\n"
+        "Проблема в другом: новичок обычно не понимает, где ошибка "
+        "станет дорогой.\n\n"
+        "Можно купить товар у плохого поставщика.\n"
+        "Можно взять товар, который почти не продаётся.\n"
+        "Можно неправильно подготовить документы или регистрацию.\n"
+        "Можно красиво посчитать прибыль — а потом уйти в минус.\n\n"
+        "Поэтому я сделал формат, где можно идти не в хаосе, а по шагам: "
+        "с проверкой товаров, поставщиков, цифр и первой отправки на "
+        "Amazon.\n\n"
+        "Сейчас покажу, что внутри 👇"
     ),
     "offer_text": (
-        "Что мы делаем внутри:\n\n"
-        "✅ разбираем, как устроен заработок на Amazon\n"
-        "✅ помогаем с регистрацией и базовыми настройками\n"
-        "✅ ищем поставщиков и понимаем, кому можно доверять\n"
-        "✅ проверяем товары до закупки\n"
-        "✅ считаем прибыль, расходы и риски\n"
-        "✅ готовим первую отправку на Amazon\n"
-        "✅ разбираем ошибки, чтобы не слить бюджет на старте\n\n"
+        "Что входит в работу со мной:\n\n"
+        "✅ показываю, как устроен заработок на Amazon\n"
+        "✅ помогаю разобраться с регистрацией и базовыми настройками\n"
+        "✅ показываю, где искать поставщиков и как их проверять\n"
+        "✅ учу проверять товар до закупки\n"
+        "✅ помогаю считать расходы, прибыль и риски\n"
+        "✅ разбираем первую отправку на Amazon\n"
+        "✅ исправляем ошибки до того, как они стоят денег\n\n"
         "Цель — не просто «посмотреть уроки».\n\n"
-        "Цель — понять систему, сделать первые правильные действия и "
-        "дойти до продаж без хаоса."
+        "Цель — понять систему и сделать первые шаги без хаоса."
     ),
     "offer_app_bridge": (
-        "Форматы есть разные: от самостоятельного прохождения до более "
-        "плотной работы со мной.\n\n"
-        "Я не буду грузить вас длинным списком прямо в чате — это неудобно "
-        "читать.\n\n"
-        "Я собрал всё в мини-приложении:\n\n"
-        "— какие есть форматы;\n"
-        "— что входит в каждый;\n"
+        "Все форматы я вынес в мини-приложение, чтобы не грузить вас "
+        "длинным текстом в чате.\n\n"
+        "Там можно спокойно посмотреть:\n\n"
+        "— какие есть варианты прохождения;\n"
+        "— что входит в каждый формат;\n"
         "— чем они отличаются;\n"
-        "— какие бонусы идут внутри;\n"
-        "— какие результаты уже есть у учеников;\n"
-        "— какой вариант чаще всего выбирают.\n\n"
-        "Откройте, спокойно пролистайте и посмотрите, что подходит вам 👇"
+        "— какие инструменты идут внутри;\n"
+        "— какие результаты уже есть у учеников.\n\n"
+        "Откройте и посмотрите, что вам ближе 👇"
     ),
-    "offer_gift": (
-        "🎁 Внутри также есть бонусы-инструменты.\n\n"
-        "Это помощники для поиска товаров, проверки перед закупкой, "
-        "работы с поставщиками и контроля цены.\n\n"
-        "То, что обычно собирают месяцами, уже собрано в одном месте — "
-        "чтобы вы не начинали с пустого листа."
+    "offer_tools": (
+        "Внутри пакетов обучения также есть готовые инструменты.\n\n"
+        "Стандартная стоимость всех этих инструментов — около $2 000. "
+        "В пакеты обучения они входят бесплатно.\n\n"
+        "Это те же инструменты, которыми лично я и моя команда пользуемся "
+        "регулярно.\n\n"
+        "Они помогают:\n\n"
+        "— искать товары;\n"
+        "— проверять товар перед закупкой;\n"
+        "— работать с поставщиками;\n"
+        "— считать расходы;\n"
+        "— следить за ценой.\n\n"
+        "Это не «волшебные кнопки», а помощники, чтобы не начинать с "
+        "пустого листа."
     ),
     "offer_risk": (
-        "Если после просмотра форматов захотите понять, что подходит "
-        "именно вам, можно забрать бонус — скидка и личный созвон со мной.\n\n"
-        "На созвоне смотрим:\n\n"
-        "— ваш бюджет;\n"
-        "— сколько времени есть на старт;\n"
-        "— с чего лучше начинать;\n"
-        "— какие риски есть именно у вас;\n"
-        "— какой формат будет самым адекватным.\n\n"
-        "И честно решаем: стоит вам заходить сейчас или лучше пока не "
-        "спешить."
+        "Дальше у вас два варианта.\n\n"
+        "Если хотите посмотреть форматы — откройте мини-приложение.\n\n"
+        "Если пока не готовы идти в обучение, начните с бесплатного "
+        "PDF-гайда. Там я разобрал 3 ошибки, из-за которых новички чаще "
+        "всего теряют деньги ещё до нормального старта."
     ),
     "programs_text": (
         "Вот варианты обучения — от «разберусь сам» до «под ключ» 👇\n\n"
@@ -420,17 +420,16 @@ TXT = {
         "Все уроки, программы-помощники, записи прошлых занятий, доступ "
         "навсегда. Свой темп.\n\n"
         "2️⃣ Поток — $1100\n"
-        "Всё то же + группа, 2 личных созвона со мной, один поставщик на "
+        "Всё то же + группа, 2 личных разбора со мной, один поставщик на "
         "старт, поддержка. До первых продаж.\n\n"
         "3️⃣ Продвинутый — $1700 ⭐ (чаще всего)\n"
-        "Всё из «Потока» + 4 созвона, три поставщика, рынок США или "
-        "Европа, поддержка 4 месяца.\n\n"
+        "Всё из «Потока» + 4 личных разбора, три поставщика, рынок США "
+        "или Европа, поддержка 4 месяца.\n\n"
         "4️⃣ Под ключ — $4200 💎\n"
-        "12 созвонов, 10 поставщиков, помощь с 50 товарами, сайт и учёт, "
-        "поддержка полгода. Цель — $15 000+ продаж в месяц.\n\n"
-        "🎁 В каждый вариант — бонусы-помощники.\n\n"
-        "Что вам подойдёт — подскажу в бонусе, когда разберём вашу "
-        "ситуацию 🙂"
+        "12 личных разборов, 10 поставщиков, помощь с 50 товарами, сайт "
+        "и учёт, поддержка полгода. Цель — $15 000+ продаж в месяц.\n\n"
+        "🎁 В каждый пакет — инструменты (~$2 000) бесплатно.\n\n"
+        "Что вам подойдёт — смотрите в мини-приложении или напишите мне 🙂"
     ),
     "students_caption": (
         "Разные страны и разные старты — одна схема 👇\n\n"
@@ -442,8 +441,8 @@ TXT = {
         "Загляните, если хотите увидеть масштаб."
     ),
     "back_to_offer": (
-        "Посмотрели форматы? Если готовы разобрать вашу ситуацию — "
-        "заберите бонус: скидка на обучение и личный созвон 👇"
+        "Посмотрели форматы? Если готовы забрать скидку на обучение — "
+        "нажмите кнопку ниже 👇"
     ),
     "promo_fallback": (
         "Отлично 🙂\n\n"
@@ -466,8 +465,7 @@ TXT = {
         "Вижу, вы посмотрели информацию, но пока не забрали бонус 🙂\n\n"
         "Если есть сомнения — это нормально. Можно начать мягче: "
         "заберите гайд по ошибкам перед первой закупкой.\n\n"
-        "А если хотите сразу разобрать вашу ситуацию — заберите бонус "
-        "и личный созвон 👇"
+        "А если готовы к обучению — заберите скидку 👇"
     ),
     "drip_after_lead": (
         "Вы забрали бонус — я на связи 🙌\n\n"
@@ -512,22 +510,22 @@ TXT = {
     ),
     "promo_hot": (
         "Отлично 🙂\n\n"
-        "Закрепляю для вас бонус на {hours} часов: скидка на обучение + "
-        "личный созвон со мной в подарок.\n\n"
-        "На созвоне посмотрим вашу ситуацию: бюджет, время, риски и "
-        "какой формат старта будет адекватным.\n\n"
+        "Закрепляю для вас бонус на {hours} часов: скидка {discount}% "
+        "на обучение.\n\n"
+        "Нажмите кнопку — откроется страница со скидкой. В "
+        "мини-приложении цены тоже обновятся на время бонуса.\n\n"
         "Кнопка ниже 👇"
     ),
     "promo_warm": (
         "Отлично 🙂\n\n"
-        "Закрепляю для вас бонус на {hours} часов: скидка на обучение + "
-        "личный созвон со мной в подарок.\n\n"
-        "На созвоне посмотрим вашу ситуацию: бюджет, время, риски и "
-        "какой формат старта будет адекватным.\n\n"
+        "Закрепляю для вас бонус на {hours} часов: скидка {discount}% "
+        "на обучение.\n\n"
+        "Нажмите кнопку — откроется страница со скидкой. В "
+        "мини-приложении цены тоже обновятся на время бонуса.\n\n"
         "Кнопка ниже 👇"
     ),
     "promo_pinned": (
-        "⏳ Ваш бонус активен: скидка на обучение + личный созвон.\n"
+        "⏳ Ваш бонус активен: скидка {discount}% на обучение.\n"
         "Осталось: {left}\n\n"
         "Забрать можно в сообщении выше 👆"
     ),
@@ -538,13 +536,40 @@ TXT = {
     ),
     "promo_drip": (
         "⏳ Бонус ещё активен.\n\n"
-        "Если хотите забрать скидку и личный созвон — кнопка выше 👆"
+        "Если хотите забрать скидку — кнопка выше 👆"
     ),
     "media_fail": (
         "Видео сейчас не открылось — техническая ошибка на стороне бота.\n\n"
         "Напишите мне лично — пришлю ролик или ссылку вручную 👇"
     ),
 }
+
+# Напоминания о PDF-гайде в воронке (ротация, до 5 раз).
+GUIDE_TEASERS = [
+    (
+        "Кстати, в конце вы бесплатно получите гайд «3 ошибки новичка на "
+        "Amazon» — не просто список ошибок, а как их не допустить и что "
+        "делать вместо них."
+    ),
+    (
+        "Напоминаю: в конце вас ждёт бесплатный гайд — 3 ошибки, из-за "
+        "которых новички теряют деньги на Amazon. Разберём не только сами "
+        "ошибки, но и что делать вместо них."
+    ),
+    (
+        "А вы помните? В конце вы сможете бесплатно забрать гайд: 3 "
+        "ошибки, которые чаще всего ломают старт на Amazon. Внутри — как "
+        "их не допустить и как действовать правильно до первой закупки."
+    ),
+    (
+        "3 ошибки амазонщика — для кого-то это десятки тысяч долларов. "
+        "Для вас в конце пути — бесплатно."
+    ),
+    (
+        "Кстати, в конце — PDF «3 ошибки новичка»: что проверить до "
+        "первой закупки, чтобы не слить бюджет на старте."
+    ),
+]
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -561,16 +586,16 @@ BTN = {
     "v2_next":    "➡️ Дальше — к разбору страхов",
     "to_v3":      "🙅 Смотреть разбор страхов (~7 мин)",
     "v3_watch":   "▶️ Смотреть разбор страхов (~7 мин)",
-    "to_fork":    "➡️ Что дальше — кружок",
-    "to_offer":   "📋 Что входит в работу со мной",
-    "offer_next": "💎 Смотреть форматы обучения",
-    "offer_gift_next": "🎁 Дальше — бонусы и разбор",
+    "to_fork":    "➡️ Дальше",
+    "to_offer":   "Расскажи подробнее",
+    "offer_next": "➡️ Дальше — к форматам",
+    "offer_gift_next": "➡️ Дальше — инструменты",
     "students":   "Результаты учеников",
-    "programs":   "💎 Посмотреть форматы обучения",
+    "programs":   "💎 Посмотреть форматы",
     "site":       "Открыть сайт с результатами",
-    "to_lead":    "🎁 Скидка −20% + личный созвон (24ч)",
-    "lm_get":     "📘 Забрать гайд",
-    "contact":    "Написать @vadjik",
+    "to_lead":    "🎁 Скидка −20% (24 ч)",
+    "lm_get":     "📘 Забрать PDF-гайд",
+    "contact":    "Написать Вадиму",
     # лид-магнит
     "lm_grab":    "Забрать топ-3 ошибки (бесплатно)",
     "lm_want":    "Хочу забрать",
@@ -578,7 +603,7 @@ BTN = {
     "lm_goto":    "Перейти в канал",
     "lm_check":   "Я подписался ✅",
     # промо
-    "promo_get":  "🔥 Забрать скидку + созвон",
+    "promo_get":  "🔥 Забрать скидку −20%",
     "promo_app":  "💎 Открыть программы со скидкой",
 }
 
@@ -666,11 +691,30 @@ def kb(rows):
     return InlineKeyboardMarkup(buttons)
 
 
-async def send_step(bot, uid, text, rows=None, skip_pause=False, **kwargs):
+def append_guide_teaser(uid, text):
+    """Добавляет напоминание о PDF-гайде (до 5 раз на пользователя)."""
+    rec = u(uid)
+    if rec.get("got_guide"):
+        return text
+    step = rec.get("step", "")
+    if step in ("lead", "qualified", "qualified_cold", "fork", "offer"):
+        return text
+    i = rec.get("guide_teaser_i", 0)
+    if i >= len(GUIDE_TEASERS):
+        return text
+    rec["guide_teaser_i"] = i + 1
+    save_state(STATE)
+    return f"{text}\n\n{GUIDE_TEASERS[i]}"
+
+
+async def send_step(bot, uid, text, rows=None, skip_pause=False,
+                    guide_teaser=False, **kwargs):
     """Отправляет сообщение и гарантирует, что активные кнопки есть только
     у ПОСЛЕДНЕГО сообщения. Перед отправкой снимает кнопки с предыдущего
     сообщения, у которого они были, — чтобы из истории нельзя было
     наклацать старых кнопок и сбить воронку."""
+    if guide_teaser:
+        text = append_guide_teaser(uid, text)
     rec = u(uid)
     prev_id = rec.get("last_kb_msg")
     if prev_id:
@@ -1107,7 +1151,7 @@ async def send_guide(bot, chat_id):
         await bot.send_message(
             chat_id,
             "📘 Гайд ещё готовится — пришлю вам сразу, как только будет готов.\n\n"
-            "А пока, если хотите забрать бонус и созвон со мной, "
+            "А пока, если хотите забрать скидку на обучение — "
             "кнопка ниже 👇",
         )
     except Exception as e:
@@ -1116,13 +1160,69 @@ async def send_guide(bot, chat_id):
 
 # ---------------- ПОКАЗ ПРОМО ----------------
 
+def cancel_promo_jobs(app, uid):
+    """Снять таймер, напоминание и задачу удаления промо."""
+    for job in app.job_queue.jobs():
+        if not job.name:
+            continue
+        if job.name in (
+            f"promotick_{uid}",
+            f"promoremind_{uid}",
+            f"promoexpire_{uid}",
+        ):
+            job.schedule_removal()
+
+
+async def expire_promo(bot, uid, rec):
+    """Удалить сообщения со скидкой / Mini App и открепить таймер."""
+    promo = rec.get("promo") or {}
+    pin_id = promo.get("pin_msg_id")
+    main_id = promo.get("main_msg_id")
+    remind_id = promo.get("remind_msg_id")
+    ids = {x for x in (pin_id, main_id, remind_id) if x}
+
+    try:
+        await bot.unpin_all_chat_messages(uid)
+    except Exception:
+        if pin_id:
+            try:
+                await bot.unpin_chat_message(uid, pin_id)
+            except Exception:
+                pass
+
+    for mid in ids:
+        try:
+            await bot.delete_message(chat_id=uid, message_id=mid)
+        except Exception as e:
+            log.debug("promo delete msg %s: %s", mid, e)
+
+    if rec.get("last_kb_msg") in ids:
+        rec["last_kb_msg"] = None
+    promo["active"] = False
+    promo["pin_msg_id"] = None
+    promo["main_msg_id"] = None
+    promo["remind_msg_id"] = None
+    save_state(STATE)
+
+
+async def promo_expire(context: ContextTypes.DEFAULT_TYPE):
+    """Ровно в deadline: удалить промо-сообщения (таймер к этому моменту уже отработал)."""
+    uid = context.job.data["uid"]
+    rec = u(uid)
+    promo = rec.get("promo") or {}
+    if time.time() < promo.get("deadline", 0) - 2:
+        return
+    cancel_promo_jobs(context.application, uid)
+    await expire_promo(context.bot, uid, rec)
+
+
 async def show_promo(context, uid, user, temperature):
     """Выдаёт персональную скидку: ссылка с подписью, закреп, таймер."""
     bot = context.bot
     rec = u(uid)
 
     if not PROMO_SECRET:
-        # секрет не задан — не выдаём кривую ссылку, ведём на созвон
+        # секрет не задан — не выдаём кривую ссылку, ведём в личку
         await send_step(bot, uid, TXT["promo_fallback"],
                         [(BTN["contact"], CALL_LINK, True)])
         log.warning("PROMO_SECRET не задан — промо не выдано, отдан контакт")
@@ -1136,11 +1236,13 @@ async def show_promo(context, uid, user, temperature):
         "deadline": deadline,
         "link": link,
         "temperature": temperature,
+        "active": True,
     }
     save_state(STATE)
+    cancel_promo_jobs(context.application, uid)
 
     intro = TXT["promo_hot"] if temperature == "hot" else TXT["promo_warm"]
-    intro = intro.format(hours=PROMO_HOURS)
+    intro = intro.format(hours=PROMO_HOURS, discount=PROMO_DISCOUNT)
 
     # кнопки: оформить со скидкой, программы со скидкой (Mini App), контакт
     rows = [(BTN["promo_get"], link, True)]
@@ -1148,14 +1250,17 @@ async def show_promo(context, uid, user, temperature):
         rows.append((BTN["promo_app"], webapp_promo_url(uid, deadline, link), "webapp"))
     rows.append((BTN["contact"], CALL_LINK, True))
 
-    await send_step(bot, uid, intro, rows)
+    promo_msg = await send_step(bot, uid, intro, rows)
+    rec["promo"]["main_msg_id"] = promo_msg.message_id
+    save_state(STATE)
 
     # закреплённое сообщение с таймером (обычным send_message, чтобы НЕ
     # снять кнопки с промо-сообщения выше)
     try:
         await pause_text(bot, uid)
         pin = await bot.send_message(
-            uid, TXT["promo_pinned"].format(left=fmt_left(deadline)))
+            uid, TXT["promo_pinned"].format(
+                left=fmt_left(deadline), discount=PROMO_DISCOUNT))
         await bot.pin_chat_message(uid, pin.message_id,
                                    disable_notification=True)
         rec["promo"]["pin_msg_id"] = pin.message_id
@@ -1168,6 +1273,13 @@ async def show_promo(context, uid, user, temperature):
         )
     except Exception as e:
         log.error("promo pin failed: %s", e)
+
+    # в момент окончания срока — удалить сообщения со скидкой и кнопкой аппки
+    expire_in = max(1, deadline - int(time.time()))
+    context.application.job_queue.run_once(
+        promo_expire, when=expire_in,
+        name=f"promoexpire_{uid}", data={"uid": uid},
+    )
 
     # напоминание за пару часов до конца
     remind_in = max(60, (PROMO_HOURS - 2) * 3600)
@@ -1191,16 +1303,14 @@ async def promo_tick(context: ContextTypes.DEFAULT_TYPE):
         return
     bot = context.bot
     if time.time() >= deadline:
-        # истекло — финальный текст, открепить, остановить
-        try:
-            await bot.edit_message_text(TXT["promo_expired"], uid, pin_id)
-            await bot.unpin_chat_message(uid, pin_id)
-        except Exception as e:
-            log.error("promo expire failed: %s", e)
+        cancel_promo_jobs(context.application, uid)
+        await expire_promo(bot, uid, rec)
         return
     try:
         await bot.edit_message_text(
-            TXT["promo_pinned"].format(left=fmt_left(deadline)), uid, pin_id)
+            TXT["promo_pinned"].format(
+                left=fmt_left(deadline), discount=PROMO_DISCOUNT),
+            uid, pin_id)
     except Exception:
         pass  # текст не изменился или сообщение удалено — не страшно
     # перепланируем следующий тик: первые 5 минут — каждые 15 сек, потом 30 мин
@@ -1218,11 +1328,15 @@ async def promo_remind(context: ContextTypes.DEFAULT_TYPE):
     rec = u(uid)
     promo = rec.get("promo") or {}
     deadline = promo.get("deadline", 0)
-    if time.time() >= deadline:
+    if time.time() >= deadline or not promo.get("active", True):
         return
     try:
-        await send_step(context.bot, uid, TXT["promo_drip"],
-                        [(BTN["promo_get"], promo.get("link"), True)])
+        remind_msg = await send_step(
+            context.bot, uid, TXT["promo_drip"],
+            [(BTN["promo_get"], promo.get("link"), True)],
+        )
+        rec["promo"]["remind_msg_id"] = remind_msg.message_id
+        save_state(STATE)
     except Exception as e:
         log.error("promo_remind failed: %s", e)
 
@@ -1297,7 +1411,8 @@ async def go_intro(update, context):
         return
     await pause_after_circle(bot, uid)
     await send_step(bot, uid, TXT["after_circle_intro"],
-                    [(BTN["v1_watch"], "go_v1_prep", False)], skip_pause=True)
+                    [(BTN["v1_watch"], "go_v1_prep", False)],
+                    skip_pause=True, guide_teaser=True)
     set_step(uid, "intro")
 
 
@@ -1328,7 +1443,8 @@ async def go_v1_proofs(update, context):
     bot = context.bot
     await send_proofs(bot, uid, PROOFS_AFTER_V1, TXT["proofs_v1_caption"])
     await send_step(bot, uid, TXT["after_v1_proofs"],
-                    [(BTN["to_v2"], "go_v2_prep", False)], skip_pause=True)
+                    [(BTN["to_v2"], "go_v2_prep", False)],
+                    skip_pause=True, guide_teaser=True)
 
 
 async def go_v2_prep(update, context):
@@ -1336,7 +1452,8 @@ async def go_v2_prep(update, context):
     bot = context.bot
     cancel_drips(context.application, uid)
     await send_step(bot, uid, TXT["bridge_v2"],
-                    [(BTN["v2_watch"], "go_v2_video", False)], skip_pause=True)
+                    [(BTN["v2_watch"], "go_v2_video", False)],
+                    skip_pause=True, guide_teaser=True)
 
 
 async def go_v2_video(update, context):
@@ -1355,7 +1472,8 @@ async def go_v2_proofs(update, context):
     bot = context.bot
     await send_proofs(bot, uid, PROOFS_AFTER_V2)
     await send_step(bot, uid, TXT["proofs_v2_caption"],
-                    [(BTN["v2_next"], "go_v2_bridge", False)], skip_pause=True)
+                    [(BTN["v2_next"], "go_v2_bridge", False)],
+                    skip_pause=True, guide_teaser=True)
 
 
 async def go_v2_bridge(update, context):
@@ -1370,7 +1488,8 @@ async def go_v3_prep(update, context):
     uid = update.effective_user.id
     bot = context.bot
     await send_step(bot, uid, TXT["bridge_v3"],
-                    [(BTN["v3_watch"], "go_v3_video", False)], skip_pause=True)
+                    [(BTN["v3_watch"], "go_v3_video", False)],
+                    skip_pause=True, guide_teaser=True)
 
 
 async def go_v3_video(update, context):
@@ -1428,7 +1547,7 @@ async def go_offer_formats(update, context):
 async def go_offer_gift(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await send_step(bot, uid, TXT["offer_gift"],
+    await send_step(bot, uid, TXT["offer_tools"],
                     [(BTN["offer_gift_next"], "go_offer_final", False)],
                     skip_pause=True)
 
@@ -1438,8 +1557,8 @@ async def go_offer_final(update, context):
     bot = context.bot
     await send_step(bot, uid, TXT["offer_risk"], [
         programs_btn(),
-        (BTN["to_lead"], "go_lead", False),
         (BTN["lm_get"], "go_guide", False),
+        (BTN["contact"], CALL_LINK, True),
     ], skip_pause=True)
 
 
@@ -1480,8 +1599,41 @@ async def go_students(update, context):
     ])
 
 
+async def on_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Данные из Mini App (кнопка «Закрепить скидку»)."""
+    msg = update.effective_message
+    if not msg or not msg.web_app_data:
+        return
+    uid = update.effective_user.id
+    data = (msg.web_app_data.data or "").strip()
+    if data != "claim_promo":
+        return
+    user = update.effective_user
+    rec = u(uid)
+    promo = rec.get("promo") or {}
+    if promo.get("deadline", 0) > time.time():
+        await context.bot.send_message(
+            uid,
+            "Скидка уже закреплена — смотрите сообщение с таймером выше 👆\n\n"
+            "Можно снова открыть «💎 Посмотреть форматы» — цены со скидкой.",
+        )
+        return
+    if not PROMO_SECRET:
+        await send_step(
+            context.bot, uid,
+            "Скидка пока настраивается. Напишите мне — подскажу по "
+            "форматам 👇",
+            [(BTN["contact"], CALL_LINK, True)],
+        )
+        return
+    if not rec.get("temperature"):
+        rec["temperature"] = "warm"
+    save_state(STATE)
+    await show_promo(context, uid, user, rec.get("temperature", "warm"))
+
+
 async def go_lead(update, context):
-    """«Получить скидка и созвон» — промо (скидка + личный созвон)."""
+    """Забрать персональную скидку на обучение."""
     uid = update.effective_user.id
     bot = context.bot
     user = update.effective_user
@@ -1508,7 +1660,7 @@ async def go_lead(update, context):
         try:
             await bot.send_message(
                 ADMIN_ID,
-                f"🔥 НОВАЯ ЗАЯВКА — бонус (скидка + созвон)\n"
+                f"🔥 НОВАЯ ЗАЯВКА — скидка −{PROMO_DISCOUNT}%\n"
                 f"Имя: {user.full_name}\n"
                 f"Username: {uname}\n"
                 f"ID: {user.id}\n"
@@ -1916,6 +2068,7 @@ def main():
     app.add_handler(CommandHandler("lead", cmd_lead))
     app.add_handler(CommandHandler("reset", cmd_reset))
     app.add_handler(CallbackQueryHandler(on_button))
+    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, on_webapp_data))
     app.add_handler(MessageHandler(
         filters.VIDEO | filters.VIDEO_NOTE | filters.PHOTO
         | filters.Document.ALL,
