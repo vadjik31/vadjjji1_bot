@@ -316,17 +316,12 @@ TXT = {
         "«а вдруг заблокируют»\n"
         "«уже поздно заходить»\n"
         "«там слишком много конкурентов»\n\n"
-        "В следующем видео разберу эти причины честно 👇"
+        "Дальше — честный разбор этих причин (~7 мин). Нажмите кнопку — "
+        "видео сразу откроется 👇"
     ),
-    "bridge_v3": (
-        "Это финальное видео перед тем, как двигаться дальше.\n\n"
-        "Я разберу главные причины, почему люди даже не доходят до "
-        "первого шага.\n\n"
-        "Посмотрите честно.\n\n"
-        "Если узнаете себя — это не страшно. Главное понять: это "
-        "настоящая причина или просто страх, который держит вас на месте.\n\n"
-        "После этого станет понятно, стоит ли вам вообще заходить в "
-        "Amazon сейчас 👇"
+    "v3_loading": (
+        "▶️ Загружаю разбор страхов (~7 мин).\n\n"
+        "Подождите несколько секунд — видео появится следующим сообщением."
     ),
     "after_v3_video": (
         "Досмотрели? 👇\n\n"
@@ -346,73 +341,51 @@ TXT = {
         "Дальше — честный разбор: почему люди понимают схему, но не "
         "начинают."
     ),
-    "offer_next": (
-        "Посмотрели, что входит? 👇\n\n"
-        "Дальше — пакеты обучения и мини-приложение с форматами."
-    ),
-    "offer_gift_next": (
-        "Посмотрели форматы? 👇\n\n"
-        "Дальше — какие инструменты входят в пакеты обучения."
-    ),
     "after_fork_circle": (
         "Смотрите.\n\n"
-        "Разобраться самому можно. В интернете хватает видео, чатов и "
-        "кусочков информации.\n\n"
-        "Проблема в другом: новичок обычно не понимает, где ошибка "
-        "станет дорогой.\n\n"
-        "Можно купить товар у плохого поставщика.\n"
-        "Можно взять товар, который почти не продаётся.\n"
-        "Можно неправильно подготовить документы или регистрацию.\n"
-        "Можно красиво посчитать прибыль — а потом уйти в минус.\n\n"
-        "Поэтому я сделал формат, где можно идти не в хаосе, а по шагам: "
-        "с проверкой товаров, поставщиков, цифр и первой отправки на "
-        "Amazon.\n\n"
-        "Сейчас покажу, что внутри 👇"
+        "Разобраться самому можно. Но проблема не в том, что информации "
+        "мало.\n\n"
+        "Новичок часто не понимает, где ошибка станет дорогой:\n\n"
+        "— плохой поставщик;\n"
+        "— товар, который не продаётся;\n"
+        "— ошибки в документах;\n"
+        "— неправильный расчёт прибыли.\n\n"
+        "Поэтому я сделал формат, где можно идти по шагам, с проверками "
+        "и поддержкой.\n\n"
+        "Ниже коротко покажу, что внутри 👇"
     ),
-    "offer_text": (
-        "Что входит в работу со мной:\n\n"
-        "✅ показываю, как устроен заработок на Amazon\n"
-        "✅ помогаю разобраться с регистрацией и базовыми настройками\n"
-        "✅ показываю, где искать поставщиков и как их проверять\n"
-        "✅ учу проверять товар до закупки\n"
-        "✅ помогаю считать расходы, прибыль и риски\n"
-        "✅ разбираем первую отправку на Amazon\n"
-        "✅ исправляем ошибки до того, как они стоят денег\n\n"
-        "Цель — не просто «посмотреть уроки».\n\n"
-        "Цель — понять систему и сделать первые шаги без хаоса."
+    "offer_menu": (
+        "Сейчас покажу, что входит в работу со мной.\n\n"
+        "Чтобы не грузить вас длинным текстом, разбил всё на короткие "
+        "блоки 👇\n\n"
+        "Откройте то, что хотите посмотреть:"
     ),
-    "offer_app_bridge": (
-        "Все форматы я вынес в мини-приложение, чтобы не грузить вас "
-        "длинным текстом в чате.\n\n"
-        "Там можно спокойно посмотреть:\n\n"
-        "— какие есть варианты прохождения;\n"
-        "— что входит в каждый формат;\n"
-        "— чем они отличаются;\n"
-        "— какие инструменты идут внутри;\n"
-        "— какие результаты уже есть у учеников.\n\n"
-        "Откройте и посмотрите, что вам ближе 👇"
+    "offer_steps": (
+        "🧭 Как идём по шагам к продажам\n\n"
+        "Не «посмотрели уроки и разберётесь сами», а идём по цепочке:\n\n"
+        "— как устроен заработок на Amazon;\n"
+        "— регистрация и базовые настройки;\n"
+        "— поиск и проверка поставщиков;\n"
+        "— проверка товара до закупки;\n"
+        "— расходы, прибыль и риски;\n"
+        "— первая отправка на Amazon.\n\n"
+        "Цель — первые шаги без хаоса."
     ),
-    "offer_tools": (
-        "Внутри пакетов обучения также есть готовые инструменты.\n\n"
-        "Стандартная стоимость всех этих инструментов — около $2 000. "
-        "В пакеты обучения они входят бесплатно.\n\n"
-        "Это те же инструменты, которыми лично я и моя команда пользуемся "
-        "регулярно.\n\n"
-        "Они помогают:\n\n"
-        "— искать товары;\n"
-        "— проверять товар перед закупкой;\n"
-        "— работать с поставщиками;\n"
-        "— считать расходы;\n"
-        "— следить за ценой.\n\n"
-        "Это не «волшебные кнопки», а помощники, чтобы не начинать с "
-        "пустого листа."
+    "offer_checks": (
+        "🔍 Что проверяем до закупки\n\n"
+        "Главное — поймать ошибку до того, как она стоит денег:\n\n"
+        "— можно ли доверять поставщику;\n"
+        "— продаётся ли товар на Amazon;\n"
+        "— сходятся ли цифры после всех расходов;\n"
+        "— нет ли риска по документам и правилам.\n\n"
+        "Исправляем до закупки, а не после."
     ),
-    "offer_risk": (
-        "Дальше у вас два варианта.\n\n"
-        "Если хотите посмотреть форматы — откройте мини-приложение.\n\n"
-        "Если пока не готовы идти в обучение, начните с бесплатного "
-        "PDF-гайда. Там я разобрал 3 ошибки, из-за которых новички чаще "
-        "всего теряют деньги ещё до нормального старта."
+    "offer_formats_short": (
+        "💎 Форматы обучения и результаты\n\n"
+        "Тарифы, отличия, скрины учеников — и блок 🧰 инструменты "
+        "(~$2 000 по отдельности, в пакеты входят бесплатно) — всё в "
+        "мини-приложении.\n\n"
+        "Там удобнее, чем длинный текст в чате 👇"
     ),
     "programs_text": (
         "Вот варианты обучения — от «разберусь сам» до «под ключ» 👇\n\n"
@@ -441,8 +414,7 @@ TXT = {
         "Загляните, если хотите увидеть масштаб."
     ),
     "back_to_offer": (
-        "Посмотрели форматы? Если готовы забрать скидку на обучение — "
-        "нажмите кнопку ниже 👇"
+        "Посмотрели? Вернитесь в меню или заберите скидку 👇"
     ),
     "promo_fallback": (
         "Отлично 🙂\n\n"
@@ -462,10 +434,9 @@ TXT = {
         "Продолжим? 👇"
     ),
     "drip_after_offer": (
-        "Вижу, вы посмотрели информацию, но пока не забрали бонус 🙂\n\n"
-        "Если есть сомнения — это нормально. Можно начать мягче: "
-        "заберите гайд по ошибкам перед первой закупкой.\n\n"
-        "А если готовы к обучению — заберите скидку 👇"
+        "Если остались вопросы — откройте меню блоков или мини-приложение "
+        "с форматами 👇\n\n"
+        "Можно начать с бесплатного PDF-гайда или забрать скидку на обучение."
     ),
     "drip_after_lead": (
         "Вы забрали бонус — я на связи 🙌\n\n"
@@ -587,11 +558,13 @@ BTN = {
     "to_v3":      "🙅 Смотреть разбор страхов (~7 мин)",
     "v3_watch":   "▶️ Смотреть разбор страхов (~7 мин)",
     "to_fork":    "➡️ Дальше",
-    "to_offer":   "Расскажи подробнее",
-    "offer_next": "➡️ Дальше — к форматам",
-    "offer_gift_next": "➡️ Дальше — инструменты",
+    "offer_show": "Показать, что внутри",
+    "offer_steps": "🧭 Как идём по шагам",
+    "offer_checks": "🔍 Что проверяем",
+    "offer_formats": "💎 Форматы и результаты",
+    "offer_back": "← К меню",
     "students":   "Результаты учеников",
-    "programs":   "💎 Посмотреть форматы",
+    "programs":   "💎 Открыть мини-приложение",
     "site":       "Открыть сайт с результатами",
     "to_lead":    "🎁 Скидка −20% (24 ч)",
     "lm_get":     "📘 Забрать PDF-гайд",
@@ -819,19 +792,36 @@ async def send_text(bot, chat_id, text, **kwargs):
     return await bot.send_message(chat_id, text, **kwargs)
 
 
-def webapp_url_full():
-    """URL Mini App с подставленными ссылками contact/site."""
+def webapp_url_full(section=""):
+    """URL Mini App. section=tools — прокрутка к блоку инструментов."""
     if not WEBAPP_URL:
         return ""
-    return (f"{WEBAPP_URL}?contact={quote(CALL_LINK, safe='')}"
-            f"&site={quote(SITE_LINK, safe='')}")
+    url = (f"{WEBAPP_URL}?contact={quote(CALL_LINK, safe='')}"
+           f"&site={quote(SITE_LINK, safe='')}")
+    if section:
+        url += f"&section={quote(section, safe='')}"
+    return url
 
 
-def programs_btn():
+def programs_btn(section=""):
     """Кнопка Mini App или fallback на текстовый показ программ."""
     if WEBAPP_URL:
-        return (BTN["programs"], webapp_url_full(), "webapp")
+        return (BTN["programs"], webapp_url_full(section), "webapp")
     return (BTN["programs"], "go_programs", False)
+
+
+def offer_menu_keyboard():
+    """Меню оффера — 4 блока, по 2 кнопки в ряд."""
+    return [
+        [
+            (BTN["offer_steps"], "go_offer_steps", False),
+            (BTN["offer_checks"], "go_offer_checks", False),
+        ],
+        [
+            (BTN["offer_formats"], "go_offer_formats", False),
+            (BTN["lm_get"], "go_guide", False),
+        ],
+    ]
 
 
 # ---------------- ПРОМО ----------------
@@ -1382,9 +1372,10 @@ async def drip_fire(context: ContextTypes.DEFAULT_TYPE):
             await send_step(bot, uid, TXT["drip_after_v3"], [(BTN["to_fork"], "go_fork", False)])
         elif tag == "after_offer":
             await send_step(bot, uid, TXT["drip_after_offer"], [
-                    (BTN["to_lead"], "go_lead", False),
+                    (BTN["offer_show"], "go_offer_menu", False),
+                    (BTN["offer_formats"], "go_offer_formats", False),
                     (BTN["lm_get"], "go_guide", False),
-                    (BTN["contact"], CALL_LINK, True),
+                    (BTN["to_lead"], "go_lead", False),
                 ])
         elif tag == "after_lead":
             await send_step(bot, uid, TXT["drip_after_lead"], [(BTN["contact"], CALL_LINK, True)])
@@ -1430,7 +1421,6 @@ async def go_v1_play(update, context):
     bot = context.bot
     if not await send_media_file(bot, uid, "video_1"):
         return
-    await pause_after_video(bot, uid, "video_1")
     await send_step(bot, uid, TXT["after_v1_video"],
                     [(BTN["v1_proofs"], "go_v1_proofs", False)], skip_pause=True)
     set_step(uid, "v1")
@@ -1461,7 +1451,6 @@ async def go_v2_video(update, context):
     bot = context.bot
     if not await send_media_file(bot, uid, "video_2"):
         return
-    await pause_after_video(bot, uid, "video_2")
     await send_step(bot, uid, TXT["after_v2_video"],
                     [(BTN["v2_proofs"], "go_v2_proofs", False)], skip_pause=True)
     set_step(uid, "v2")
@@ -1477,27 +1466,26 @@ async def go_v2_proofs(update, context):
 
 
 async def go_v2_bridge(update, context):
-    """Мост между текстом про модель и блоком про страхи — с кнопкой."""
+    """Мост к видео 3 — одна кнопка, сразу ролик."""
     uid = update.effective_user.id
     bot = context.bot
     await send_step(bot, uid, TXT["after_v2"],
-                    [(BTN["to_v3"], "go_v3_prep", False)], skip_pause=True)
+                    [(BTN["v3_watch"], "go_v3_video", False)], skip_pause=True)
 
 
 async def go_v3_prep(update, context):
-    uid = update.effective_user.id
-    bot = context.bot
-    await send_step(bot, uid, TXT["bridge_v3"],
-                    [(BTN["v3_watch"], "go_v3_video", False)],
-                    skip_pause=True, guide_teaser=True)
+    """Старый шаг воронки — сразу открываем видео (на случай старых кнопок)."""
+    await go_v3_video(update, context)
 
 
 async def go_v3_video(update, context):
     uid = update.effective_user.id
     bot = context.bot
+    cancel_drips(context.application, uid)
+    await send_step(bot, uid, TXT["v3_loading"], skip_pause=True)
     if not await send_media_file(bot, uid, "video_3"):
         return
-    await pause_after_video(bot, uid, "video_3")
+    # Кнопку «дальше» сразу под видео — без паузы 2+ мин (иначе кажется, что не сработало)
     await send_step(bot, uid, TXT["after_v3_video"],
                     [(BTN["to_fork"], "go_v3_after", False)], skip_pause=True)
     set_step(uid, "v3")
@@ -1519,47 +1507,56 @@ async def go_fork(update, context):
         return
     await pause_after_circle(bot, uid)
     await send_step(bot, uid, TXT["after_fork_circle"],
-                    [(BTN["to_offer"], "go_offer", False)], skip_pause=True)
+                    [(BTN["offer_show"], "go_offer_menu", False)],
+                    skip_pause=True)
     set_step(uid, "fork")
 
 
-async def go_offer(update, context):
+async def go_offer_menu(update, context):
+    """Меню оффера — карточки по кнопкам, без полотна текста."""
     uid = update.effective_user.id
     bot = context.bot
     cancel_drips(context.application, uid)
-    await send_step(bot, uid, TXT["offer_text"],
-                    [(BTN["offer_next"], "go_offer_formats", False)],
+    await send_step(bot, uid, TXT["offer_menu"], offer_menu_keyboard(),
                     skip_pause=True)
     set_step(uid, "offer")
     schedule_drip(context.application, uid, "after_offer",
                   DRIP_HOURS["after_offer"])
 
 
-async def go_offer_formats(update, context):
-    uid = update.effective_user.id
-    bot = context.bot
-    await send_step(bot, uid, TXT["offer_app_bridge"], [
-        programs_btn(),
-        (BTN["offer_gift_next"], "go_offer_gift", False),
-    ], skip_pause=True)
+async def go_offer(update, context):
+    """Старые кнопки в истории чата → меню."""
+    await go_offer_menu(update, context)
 
 
-async def go_offer_gift(update, context):
+async def go_offer_steps(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await send_step(bot, uid, TXT["offer_tools"],
-                    [(BTN["offer_gift_next"], "go_offer_final", False)],
+    await send_step(bot, uid, TXT["offer_steps"],
+                    [(BTN["offer_back"], "go_offer_menu", False)],
                     skip_pause=True)
 
 
-async def go_offer_final(update, context):
+async def go_offer_checks(update, context):
     uid = update.effective_user.id
     bot = context.bot
-    await send_step(bot, uid, TXT["offer_risk"], [
-        programs_btn(),
-        (BTN["lm_get"], "go_guide", False),
-        (BTN["contact"], CALL_LINK, True),
-    ], skip_pause=True)
+    await send_step(bot, uid, TXT["offer_checks"],
+                    [(BTN["offer_back"], "go_offer_menu", False)],
+                    skip_pause=True)
+
+
+async def go_offer_formats(update, context):
+    """Форматы + инструменты — только в Mini App."""
+    uid = update.effective_user.id
+    bot = context.bot
+    if WEBAPP_URL:
+        await send_step(bot, uid, TXT["offer_formats_short"], [
+            programs_btn("tools"),
+            (BTN["offer_back"], "go_offer_menu", False),
+            (BTN["to_lead"], "go_lead", False),
+        ], skip_pause=True)
+        return
+    await go_programs(update, context)
 
 
 async def go_programs(update, context):
@@ -1569,8 +1566,9 @@ async def go_programs(update, context):
     bot = context.bot
     # если Mini App настроен — лучше открыть его
     if WEBAPP_URL:
-        await send_step(bot, uid, TXT["offer_app_bridge"], [
-                programs_btn(),
+        await send_step(bot, uid, TXT["offer_formats_short"], [
+                programs_btn("tools"),
+                (BTN["offer_back"], "go_offer_menu", False),
                 (BTN["to_lead"], "go_lead", False),
             ])
         return
@@ -1581,6 +1579,7 @@ async def go_programs(update, context):
     await send_proofs(bot, uid, [SITE_SCREEN], TXT["site_caption"])
     await pause_text(bot, uid)
     await send_step(bot, uid, TXT["back_to_offer"], [
+        (BTN["offer_back"], "go_offer_menu", False),
         (BTN["site"], SITE_LINK, True),
         (BTN["to_lead"], "go_lead", False),
     ])
@@ -1680,8 +1679,11 @@ async def go_guide(update, context):
 
 async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
-    await q.answer()
     d = q.data
+    if d in ("go_v1_play", "go_v2_video", "go_v3_video", "go_v3_prep"):
+        await q.answer("Загружаю видео…", show_alert=False)
+    else:
+        await q.answer()
     # Убираем кнопки с этого сообщения, чтобы их нельзя было нажать
     # повторно из истории чата (кроме админских кнопок статуса лида).
     if not d.startswith("mk_"):
@@ -1703,9 +1705,11 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "go_v3_after":      go_v3_after,
         "go_fork":          go_fork,
         "go_offer":         go_offer,
+        "go_offer_menu":    go_offer_menu,
+        "go_offer_steps":   go_offer_steps,
+        "go_offer_checks":  go_offer_checks,
         "go_offer_formats": go_offer_formats,
-        "go_offer_gift":    go_offer_gift,
-        "go_offer_final":   go_offer_final,
+        "to_offer":         go_offer_menu,
         "go_programs":      go_programs,
         "go_students":      go_students,
         "go_lead":          go_lead,
