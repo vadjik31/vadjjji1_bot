@@ -13,6 +13,7 @@ Amazon-воронка: Telegram-бот.  Боевая сборка для @vadji
 
 import asyncio
 import hashlib
+import re
 import hmac
 import json
 import logging
@@ -23,7 +24,7 @@ from datetime import datetime
 from urllib.parse import quote, urlencode
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto,
-    WebAppInfo,
+    KeyboardButton, ReplyKeyboardMarkup, WebAppInfo,
 )
 from telegram.constants import ChatAction
 from telegram.error import BadRequest
@@ -53,6 +54,13 @@ CALL_LINK = os.getenv("CALL_LINK", "").strip() or "https://t.me/vadjik"
 
 # Ссылка на твой сайт с результатами учеников.
 SITE_LINK = os.getenv("SITE_LINK", "").strip() or "https://vadjik.com/"
+
+RESULTS_LINK = os.getenv("RESULTS_URL", "").strip() or "https://vadjik.com/results"
+
+# Подписи нижнего меню (Reply Keyboard) — должны совпадать с кнопками.
+MENU_FORMATS = "Форматы сотрудничества и обучения"
+MENU_RESULTS = "Результаты учеников"
+MENU_GUIDE = "Забрать гайд"
 
 # Ссылка на Telegram Mini App (витрина тарифов + результатов).
 # Это HTTPS-адрес, где захостен mini_app/index.html (см. MINI_APP.md).
@@ -352,40 +360,16 @@ TXT = {
         "— неправильный расчёт прибыли.\n\n"
         "Поэтому я сделал формат, где можно идти по шагам, с проверками "
         "и поддержкой.\n\n"
-        "Ниже коротко покажу, что внутри 👇"
+        "Разделы — в меню внизу 👇"
     ),
-    "offer_menu": (
-        "Сейчас покажу, что входит в работу со мной.\n\n"
-        "Чтобы не грузить вас длинным текстом, разбил всё на короткие "
-        "блоки 👇\n\n"
-        "Откройте то, что хотите посмотреть:"
+    "after_fork_menu_hint": (
+        "Всё подробно — в меню внизу 👇\n\n"
+        "• форматы и обучение — мини-приложение\n"
+        "• результаты учеников — сайт\n"
+        "• PDF-гайд — бесплатно"
     ),
-    "offer_steps": (
-        "🧭 Как идём по шагам к продажам\n\n"
-        "Не «посмотрели уроки и разберётесь сами», а идём по цепочке:\n\n"
-        "— как устроен заработок на Amazon;\n"
-        "— регистрация и базовые настройки;\n"
-        "— поиск и проверка поставщиков;\n"
-        "— проверка товара до закупки;\n"
-        "— расходы, прибыль и риски;\n"
-        "— первая отправка на Amazon.\n\n"
-        "Цель — первые шаги без хаоса."
-    ),
-    "offer_checks": (
-        "🔍 Что проверяем до закупки\n\n"
-        "Главное — поймать ошибку до того, как она стоит денег:\n\n"
-        "— можно ли доверять поставщику;\n"
-        "— продаётся ли товар на Amazon;\n"
-        "— сходятся ли цифры после всех расходов;\n"
-        "— нет ли риска по документам и правилам.\n\n"
-        "Исправляем до закупки, а не после."
-    ),
-    "offer_formats_short": (
-        "💎 Форматы обучения и результаты\n\n"
-        "Тарифы, отличия, скрины учеников — и блок 🧰 инструменты "
-        "(~$2 000 по отдельности, в пакеты входят бесплатно) — всё в "
-        "мини-приложении.\n\n"
-        "Там удобнее, чем длинный текст в чате 👇"
+    "menu_results": (
+        "Результаты учеников — на сайте, со скринами и цифрами 👇"
     ),
     "programs_text": (
         "Вот варианты обучения — от «разберусь сам» до «под ключ» 👇\n\n"
@@ -434,9 +418,8 @@ TXT = {
         "Продолжим? 👇"
     ),
     "drip_after_offer": (
-        "Если остались вопросы — откройте меню блоков или мини-приложение "
-        "с форматами 👇\n\n"
-        "Можно начать с бесплатного PDF-гайда или забрать скидку на обучение."
+        "Если ещё смотрите — откройте раздел в меню внизу или заберите "
+        "скидку 👇"
     ),
     "drip_after_lead": (
         "Вы забрали бонус — я на связи 🙌\n\n"
@@ -515,30 +498,15 @@ TXT = {
     ),
 }
 
-# Напоминания о PDF-гайде в воронке (ротация, до 5 раз).
+# Напоминания о PDF-гайде в воронке (2 варианта, ротация).
 GUIDE_TEASERS = [
     (
-        "Кстати, в конце вы бесплатно получите гайд «3 ошибки новичка на "
-        "Amazon» — не просто список ошибок, а как их не допустить и что "
-        "делать вместо них."
-    ),
-    (
-        "Напоминаю: в конце вас ждёт бесплатный гайд — 3 ошибки, из-за "
-        "которых новички теряют деньги на Amazon. Разберём не только сами "
-        "ошибки, но и что делать вместо них."
-    ),
-    (
-        "А вы помните? В конце вы сможете бесплатно забрать гайд: 3 "
-        "ошибки, которые чаще всего ломают старт на Amazon. Внутри — как "
-        "их не допустить и как действовать правильно до первой закупки."
+        "Некоторые ошибки на Amazon стоят очень дорого. В конце вы получите "
+        "бесплатный гайд с 3 ошибками, которые лучше узнать до первой закупки."
     ),
     (
         "3 ошибки амазонщика — для кого-то это десятки тысяч долларов. "
         "Для вас в конце пути — бесплатно."
-    ),
-    (
-        "Кстати, в конце — PDF «3 ошибки новичка»: что проверить до "
-        "первой закупки, чтобы не слить бюджет на старте."
     ),
 ]
 
@@ -558,14 +526,10 @@ BTN = {
     "to_v3":      "🙅 Смотреть разбор страхов (~7 мин)",
     "v3_watch":   "▶️ Смотреть разбор страхов (~7 мин)",
     "to_fork":    "➡️ Дальше",
-    "offer_show": "Показать, что внутри",
-    "offer_steps": "🧭 Как идём по шагам",
-    "offer_checks": "🔍 Что проверяем",
-    "offer_formats": "💎 Форматы и результаты",
-    "offer_back": "← К меню",
     "students":   "Результаты учеников",
     "programs":   "💎 Открыть мини-приложение",
     "site":       "Открыть сайт с результатами",
+    "results_open": "Открыть результаты на сайте",
     "to_lead":    "🎁 Скидка −20% (24 ч)",
     "lm_get":     "📘 Забрать PDF-гайд",
     "contact":    "Написать Вадиму",
@@ -792,36 +756,61 @@ async def send_text(bot, chat_id, text, **kwargs):
     return await bot.send_message(chat_id, text, **kwargs)
 
 
-def webapp_url_full(section=""):
-    """URL Mini App. section=tools — прокрутка к блоку инструментов."""
+def webapp_url_full():
+    """URL Mini App с подставленными ссылками contact/site."""
     if not WEBAPP_URL:
         return ""
-    url = (f"{WEBAPP_URL}?contact={quote(CALL_LINK, safe='')}"
-           f"&site={quote(SITE_LINK, safe='')}")
-    if section:
-        url += f"&section={quote(section, safe='')}"
-    return url
+    return (f"{WEBAPP_URL}?contact={quote(CALL_LINK, safe='')}"
+            f"&site={quote(SITE_LINK, safe='')}")
 
 
-def programs_btn(section=""):
+def programs_btn():
     """Кнопка Mini App или fallback на текстовый показ программ."""
     if WEBAPP_URL:
-        return (BTN["programs"], webapp_url_full(section), "webapp")
+        return (BTN["programs"], webapp_url_full(), "webapp")
     return (BTN["programs"], "go_programs", False)
 
 
-def offer_menu_keyboard():
-    """Меню оффера — 4 блока, по 2 кнопки в ряд."""
-    return [
-        [
-            (BTN["offer_steps"], "go_offer_steps", False),
-            (BTN["offer_checks"], "go_offer_checks", False),
-        ],
-        [
-            (BTN["offer_formats"], "go_offer_formats", False),
-            (BTN["lm_get"], "go_guide", False),
-        ],
-    ]
+def main_menu_filter():
+    """Только нажатия кнопок нижнего меню."""
+    labels = "|".join(re.escape(x) for x in (MENU_FORMATS, MENU_RESULTS, MENU_GUIDE))
+    return filters.Regex(f"^({labels})$")
+
+
+def main_reply_keyboard():
+    """Нижнее закреплённое меню (как на скрине)."""
+    rows = []
+    if WEBAPP_URL:
+        rows.append([
+            KeyboardButton(
+                MENU_FORMATS,
+                web_app=WebAppInfo(url=webapp_url_full()),
+            ),
+        ])
+    else:
+        rows.append([KeyboardButton(MENU_FORMATS)])
+    rows.append([KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)])
+    return ReplyKeyboardMarkup(
+        rows, resize_keyboard=True, is_persistent=True,
+    )
+
+
+async def send_with_main_menu(bot, chat_id, text, clear_inline=True):
+    """Текст + нижнее меню (без inline-кнопок в этом сообщении)."""
+    if clear_inline:
+        rec = u(chat_id)
+        prev_id = rec.get("last_kb_msg")
+        if prev_id:
+            try:
+                await bot.edit_message_reply_markup(
+                    chat_id, prev_id, reply_markup=None)
+            except Exception:
+                pass
+            rec["last_kb_msg"] = None
+    await pause_text(bot, chat_id, text=text)
+    return await bot.send_message(
+        chat_id, text, reply_markup=main_reply_keyboard(),
+    )
 
 
 # ---------------- ПРОМО ----------------
@@ -1371,12 +1360,12 @@ async def drip_fire(context: ContextTypes.DEFAULT_TYPE):
         elif tag == "after_v3":
             await send_step(bot, uid, TXT["drip_after_v3"], [(BTN["to_fork"], "go_fork", False)])
         elif tag == "after_offer":
-            await send_step(bot, uid, TXT["drip_after_offer"], [
-                    (BTN["offer_show"], "go_offer_menu", False),
-                    (BTN["offer_formats"], "go_offer_formats", False),
-                    (BTN["lm_get"], "go_guide", False),
-                    (BTN["to_lead"], "go_lead", False),
-                ])
+            await send_with_main_menu(bot, uid, TXT["drip_after_offer"])
+            await send_step(
+                bot, uid,
+                "Скидка на обучение — по кнопке ниже 👇",
+                [(BTN["to_lead"], "go_lead", False)],
+            )
         elif tag == "after_lead":
             await send_step(bot, uid, TXT["drip_after_lead"], [(BTN["contact"], CALL_LINK, True)])
     except Exception as e:
@@ -1506,57 +1495,37 @@ async def go_fork(update, context):
     if not await send_circle(bot, uid, "circle_fork"):
         return
     await pause_after_circle(bot, uid)
-    await send_step(bot, uid, TXT["after_fork_circle"],
-                    [(BTN["offer_show"], "go_offer_menu", False)],
-                    skip_pause=True)
-    set_step(uid, "fork")
-
-
-async def go_offer_menu(update, context):
-    """Меню оффера — карточки по кнопкам, без полотна текста."""
-    uid = update.effective_user.id
-    bot = context.bot
-    cancel_drips(context.application, uid)
-    await send_step(bot, uid, TXT["offer_menu"], offer_menu_keyboard(),
-                    skip_pause=True)
+    await send_with_main_menu(bot, uid, TXT["after_fork_circle"])
     set_step(uid, "offer")
     schedule_drip(context.application, uid, "after_offer",
                   DRIP_HOURS["after_offer"])
 
 
+async def go_offer_menu(update, context):
+    """Старые inline-кнопки в истории → напоминание про меню внизу."""
+    uid = update.effective_user.id
+    bot = context.bot
+    cancel_drips(context.application, uid)
+    set_step(uid, "offer")
+    await send_with_main_menu(bot, uid, TXT["after_fork_menu_hint"])
+    schedule_drip(context.application, uid, "after_offer",
+                  DRIP_HOURS["after_offer"])
+
+
 async def go_offer(update, context):
-    """Старые кнопки в истории чата → меню."""
     await go_offer_menu(update, context)
 
 
 async def go_offer_steps(update, context):
-    uid = update.effective_user.id
-    bot = context.bot
-    await send_step(bot, uid, TXT["offer_steps"],
-                    [(BTN["offer_back"], "go_offer_menu", False)],
-                    skip_pause=True)
+    await go_offer_menu(update, context)
 
 
 async def go_offer_checks(update, context):
-    uid = update.effective_user.id
-    bot = context.bot
-    await send_step(bot, uid, TXT["offer_checks"],
-                    [(BTN["offer_back"], "go_offer_menu", False)],
-                    skip_pause=True)
+    await go_offer_menu(update, context)
 
 
 async def go_offer_formats(update, context):
-    """Форматы + инструменты — только в Mini App."""
-    uid = update.effective_user.id
-    bot = context.bot
-    if WEBAPP_URL:
-        await send_step(bot, uid, TXT["offer_formats_short"], [
-            programs_btn("tools"),
-            (BTN["offer_back"], "go_offer_menu", False),
-            (BTN["to_lead"], "go_lead", False),
-        ], skip_pause=True)
-        return
-    await go_programs(update, context)
+    await go_offer_menu(update, context)
 
 
 async def go_programs(update, context):
@@ -1566,11 +1535,11 @@ async def go_programs(update, context):
     bot = context.bot
     # если Mini App настроен — лучше открыть его
     if WEBAPP_URL:
-        await send_step(bot, uid, TXT["offer_formats_short"], [
-                programs_btn("tools"),
-                (BTN["offer_back"], "go_offer_menu", False),
-                (BTN["to_lead"], "go_lead", False),
-            ])
+        await send_with_main_menu(
+            bot, uid,
+            "Форматы и инструменты — в мини-приложении. "
+            "Нажмите «Форматы сотрудничества и обучения» в меню внизу 👇",
+        )
         return
     # иначе — тарифы текстом + старый показ результатов фото
     await send_text(bot, uid, TXT["programs_text"])
@@ -1578,11 +1547,9 @@ async def go_programs(update, context):
     await pause_text(bot, uid)
     await send_proofs(bot, uid, [SITE_SCREEN], TXT["site_caption"])
     await pause_text(bot, uid)
-    await send_step(bot, uid, TXT["back_to_offer"], [
-        (BTN["offer_back"], "go_offer_menu", False),
-        (BTN["site"], SITE_LINK, True),
-        (BTN["to_lead"], "go_lead", False),
-    ])
+    await send_with_main_menu(bot, uid, TXT["back_to_offer"])
+    await send_step(bot, uid, "Сайт с результатами 👇",
+                    [(BTN["site"], SITE_LINK, True)])
 
 
 async def go_students(update, context):
@@ -1592,10 +1559,9 @@ async def go_students(update, context):
     await pause_text(bot, uid)
     await send_proofs(bot, uid, [SITE_SCREEN], TXT["site_caption"])
     await pause_text(bot, uid)
-    await send_step(bot, uid, TXT["back_to_offer"], [
-        (BTN["site"],    SITE_LINK, True),
-        (BTN["to_lead"], "go_lead", False),
-    ])
+    await send_with_main_menu(bot, uid, TXT["back_to_offer"])
+    await send_step(bot, uid, "Сайт с результатами 👇",
+                    [(BTN["site"], SITE_LINK, True)])
 
 
 async def on_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1670,10 +1636,48 @@ async def go_lead(update, context):
             log.error("notify admin failed: %s", e)
 
 
+async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Нижнее меню: результаты, гайд, подсказка по форматам."""
+    msg = update.effective_message
+    if not msg or not msg.text:
+        return
+    uid = update.effective_user.id
+    text = msg.text.strip()
+    if text not in (MENU_FORMATS, MENU_RESULTS, MENU_GUIDE):
+        return
+    bot = context.bot
+    if text == MENU_RESULTS:
+        await send_with_main_menu(bot, uid, TXT["menu_results"], clear_inline=False)
+        await bot.send_message(
+            uid, "👇",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton(BTN["results_open"], url=RESULTS_LINK),
+            ]]),
+        )
+        return
+    if text == MENU_GUIDE:
+        set_step(uid, "offer")
+        await show_lead_magnet_offer(bot, uid)
+        return
+    if text == MENU_FORMATS:
+        set_step(uid, "offer")
+        if WEBAPP_URL:
+            await send_with_main_menu(
+                bot, uid,
+                "Нажмите «Форматы сотрудничества и обучения» ещё раз — "
+                "откроется мини-приложение со всеми форматами, инструментами "
+                "и проверками 👇",
+                clear_inline=False,
+            )
+        else:
+            await go_programs(update, context)
+
+
 async def go_guide(update, context):
     """Человек нажал «Забрать гайд» — показываем лид-магнит (подписка → гайд)."""
     uid = update.effective_user.id
     bot = context.bot
+    set_step(uid, "offer")
     await show_lead_magnet_offer(bot, uid)
 
 
@@ -2073,6 +2077,7 @@ def main():
     app.add_handler(CommandHandler("reset", cmd_reset))
     app.add_handler(CallbackQueryHandler(on_button))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, on_webapp_data))
+    app.add_handler(MessageHandler(main_menu_filter(), on_main_menu))
     app.add_handler(MessageHandler(
         filters.VIDEO | filters.VIDEO_NOTE | filters.PHOTO
         | filters.Document.ALL,
