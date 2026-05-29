@@ -79,6 +79,8 @@ PROOFS_V1_BEFORE_MAIN_SEC = 4.0
 
 SITE_PAY_ORIGIN = "https://vadjik.com"
 WEBAPP_ENGAGE_SEC = 30
+BONUS_REMIND_HOURS = float(os.getenv("BONUS_REMIND_HOURS", "3.5") or "3.5")
+BONUS_REMIND_SEC = max(3600, int(BONUS_REMIND_HOURS * 3600))
 OFFER_STEPS = frozenset({"fork", "offer", "lead", "qualified", "qualified_cold"})
 PAY_TARIFFS = (
     ("💳 Сам — оплатить", "myself"),
@@ -362,6 +364,12 @@ TXT = {
         "Но вы могли бы активировать бонус и получить уникальные цены "
         "для вас, которые значительно комфортнее, а также супер-предложение!\n\n"
         "Активировать?"
+    ),
+    "bonus_remind": (
+        "🔥 Спецпредложение ждёт вас в мини-приложении.\n\n"
+        "Откройте «💎 Форматы сотрудничества» и нажмите кнопку — "
+        "увидите персональные цены со скидкой {discount}%.\n\n"
+        "💬 Если есть вопросы — нажмите «У меня есть вопросы» в меню внизу."
     ),
     "after_fork_circle": (
         "👀 Смотрите.\n\n"
@@ -1397,9 +1405,7 @@ def tariff_pay_url(slug, uid):
 
 def should_show_pay_row(uid):
     rec = u(uid)
-    if rec.get("step") not in OFFER_STEPS:
-        return False
-    return bool(rec.get("webapp_engaged"))
+    return rec.get("step") in OFFER_STEPS
 
 
 def pay_keyboard_rows(uid):
@@ -1451,44 +1457,28 @@ def main_reply_keyboard_fallback(uid=None):
     )
 
 
-async def mark_webapp_opened(bot, uid):
+async def mark_webapp_opened(bot, uid, app=None):
     """Фиксация: человек открыл Mini App (для отчёта по воронке)."""
     rec = u(uid)
-    if rec.get("webapp_opened"):
-        return
-    rec["webapp_opened"] = True
-    rec["webapp_opened_at"] = _now()
-    save_state(STATE)
+    if not rec.get("webapp_opened"):
+        rec["webapp_opened"] = True
+        rec["webapp_opened_at"] = _now()
+        save_state(STATE)
+    if app and rec.get("step") in OFFER_STEPS:
+        schedule_bonus_remind(app, uid)
 
 
-async def handle_webapp_ready(bot, uid):
-    """30+ сек в аппке — кнопки оплаты (отдельно от «открыл» в отчёте)."""
+async def handle_webapp_ready(bot, uid, app=None):
+    """30+ сек в аппке — только тихая фиксация для отчёта, без сообщений."""
     rec = u(uid)
     if rec.get("step") not in OFFER_STEPS:
         return
-    await mark_webapp_opened(bot, uid)
+    await mark_webapp_opened(bot, uid, app)
     if rec.get("webapp_engaged"):
         return
     rec["webapp_engaged"] = True
     rec["webapp_engaged_at"] = _now()
     save_state(STATE)
-    if user_uses_discount_pay(uid):
-        await refresh_main_keyboard(
-            bot, uid,
-            "💳 Кнопки оплаты по форматам (со скидкой) — в меню внизу 👇",
-        )
-        return
-    await refresh_main_keyboard(
-        bot, uid,
-        "💳 Кнопки оплаты по форматам (по стандартной цене) — в меню внизу 👇",
-    )
-    if is_funnel_locked(rec) or not PROMO_SECRET:
-        return
-    await send_step(
-        bot, uid, TXT["bonus_offer_after_app"],
-        [(BTN["activate_bonus"], "activate_bonus", False)],
-        skip_pause=True,
-    )
 
 
 async def activate_bonus(update, context):
@@ -1955,6 +1945,55 @@ async def send_guide(bot, chat_id):
 
 # ---------------- ПОКАЗ ПРОМО ----------------
 
+def cancel_bonus_reminds(app, uid):
+    for job in app.job_queue.jobs():
+        if job.name and job.name.startswith(f"bonusremind_{uid}_"):
+            job.schedule_removal()
+
+
+def should_bonus_remind(rec):
+    if rec.get("step") not in OFFER_STEPS:
+        return False
+    if is_funnel_locked(rec):
+        return False
+    if rec.get("bonus_claimed"):
+        return False
+    promo = rec.get("promo") or {}
+    return not (promo.get("deadline", 0) > time.time())
+
+
+def schedule_bonus_remind(app, uid, delay_sec=None):
+    if not app or not app.job_queue:
+        return
+    rec = u(uid)
+    if not should_bonus_remind(rec):
+        cancel_bonus_reminds(app, uid)
+        return
+    cancel_bonus_reminds(app, uid)
+    app.job_queue.run_once(
+        bonus_remind_fire, when=delay_sec or BONUS_REMIND_SEC,
+        name=f"bonusremind_{uid}_tick",
+        data={"uid": uid},
+    )
+
+
+async def bonus_remind_fire(context: ContextTypes.DEFAULT_TYPE):
+    uid = context.job.data["uid"]
+    rec = u(uid)
+    if not should_bonus_remind(rec):
+        cancel_bonus_reminds(context.application, uid)
+        return
+    try:
+        await send_with_main_menu(
+            context.bot, uid,
+            TXT["bonus_remind"].format(discount=PROMO_DISCOUNT),
+            skip_questions_hint=True,
+        )
+    except Exception as e:
+        log.error("bonus_remind_fire failed: %s", e)
+    schedule_bonus_remind(context.application, uid)
+
+
 def cancel_promo_jobs(app, uid):
     """Снять таймер, напоминание и задачу удаления промо."""
     for job in app.job_queue.jobs():
@@ -2009,6 +2048,7 @@ async def promo_expire(context: ContextTypes.DEFAULT_TYPE):
     if time.time() < promo.get("deadline", 0) - 2:
         return
     cancel_promo_jobs(context.application, uid)
+    cancel_bonus_reminds(context.application, uid)
     await expire_promo(context.bot, uid, rec)
 
 
@@ -2036,6 +2076,7 @@ async def show_promo(context, uid, user, temperature):
     }
     rec["bonus_claimed"] = True
     save_state(STATE)
+    cancel_bonus_reminds(context.application, uid)
     cancel_promo_jobs(context.application, uid)
 
     intro = TXT["promo_hot"] if temperature == "hot" else TXT["promo_warm"]
@@ -2085,7 +2126,7 @@ async def show_promo(context, uid, user, temperature):
         name=f"promoremind_{uid}", data={"uid": uid},
     )
 
-    if rec.get("webapp_engaged"):
+    if rec.get("step") in OFFER_STEPS:
         await refresh_main_keyboard(
             bot, uid,
             "Скидка закреплена — кнопки оплаты ведут на страницы со скидкой 👇",
@@ -2107,6 +2148,7 @@ async def promo_tick(context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
     if time.time() >= deadline:
         cancel_promo_jobs(context.application, uid)
+        cancel_bonus_reminds(context.application, uid)
         await expire_promo(bot, uid, rec)
         return
     try:
@@ -2220,10 +2262,10 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     start_raw = ((context.args or [""])[0] or "").strip().lower()
     if start_raw == "wa_open":
-        await mark_webapp_opened(context.bot, uid)
+        await mark_webapp_opened(context.bot, uid, context.application)
         return
     if start_raw == "wa_ready":
-        await handle_webapp_ready(context.bot, uid)
+        await handle_webapp_ready(context.bot, uid, context.application)
         return
 
     utm = parse_utm(context.args or [])
@@ -2409,6 +2451,7 @@ async def go_fork(update, context):
         "👇 Кнопки меню закреплены внизу — ими можно пользоваться "
         "в любой момент.",
     )
+    schedule_bonus_remind(context.application, uid)
     schedule_drip(context.application, uid, "after_offer",
                   DRIP_HOURS["after_offer"])
 
@@ -2484,13 +2527,13 @@ async def on_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     data = (msg.web_app_data.data or "").strip()
     if data == "webapp_open":
-        await mark_webapp_opened(context.bot, uid)
+        await mark_webapp_opened(context.bot, uid, context.application)
         return
     if data == "webapp_ready":
-        await handle_webapp_ready(context.bot, uid)
+        await handle_webapp_ready(context.bot, uid, context.application)
         return
     if data == "open_howmany":
-        await mark_webapp_opened(context.bot, uid)
+        await mark_webapp_opened(context.bot, uid, context.application)
         hm = howmany_webapp_url()
         if hm:
             await context.bot.send_message(
@@ -2850,7 +2893,7 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     app_engaged = sum(1 for r in STATE.values() if r.get("webapp_engaged"))
     lines.append(
         f"📱 Открыли Mini App: {app_opened} · "
-        f"30+ сек (кнопки оплаты): {app_engaged}"
+        f"30+ сек в аппке: {app_engaged}"
     )
     if outcomes:
         oc_str = " · ".join(f"{k}: {v}" for k, v in outcomes.items())
@@ -3111,6 +3154,19 @@ async def post_init(application):
     except Exception as e:
         log.warning("post_init: %s", e)
     setup_auto_reports(application)
+    restore_bonus_reminds(application)
+
+
+def restore_bonus_reminds(application):
+    if not application.job_queue:
+        return
+    count = 0
+    for uid, rec in STATE.items():
+        if should_bonus_remind(rec):
+            schedule_bonus_remind(application, uid)
+            count += 1
+    if count:
+        log.info("bonus_remind: восстановлено для %s пользователей", count)
 
 
 def main():
