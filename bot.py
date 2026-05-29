@@ -95,7 +95,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260529c"
+WEBAPP_BUILD = "20260529d"
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -638,8 +638,26 @@ GUIDE_PATH = os.path.join(BASE_DIR, GUIDE_FILENAME)
 CHANNEL_LINK = "https://t.me/" + CHANNEL_USERNAME.lstrip("@")
 
 _state_io_lock = threading.Lock()
+_state_data_lock = threading.RLock()
 _state_dirty = False
 _user_locks = defaultdict(asyncio.Lock)
+_user_funnel_locks = defaultdict(asyncio.Lock)
+_media_send_sem = asyncio.Semaphore(int(os.getenv("MEDIA_SEND_PARALLEL", "8") or "8"))
+
+
+def normalize_uid(uid):
+    """Единый int id — никогда не путать пользователей."""
+    return int(uid)
+
+
+def uid_str(uid):
+    return str(normalize_uid(uid))
+
+
+def user_id_from(update):
+    if update and update.effective_user:
+        return normalize_uid(update.effective_user.id)
+    raise ValueError("update without effective_user")
 
 
 def load_state():
@@ -658,16 +676,18 @@ def load_state():
 
 
 def _flush_state_to_disk():
-    """Атомарная запись на диск (вызывается из фонового потока)."""
+    """Атомарная запись на диск (снимок STATE — без гонок между пользователями)."""
+    with _state_data_lock:
+        snapshot = json.loads(json.dumps(STATE, ensure_ascii=False))
     with _state_io_lock:
         try:
             tmp = STATE_FILE + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(STATE, f, ensure_ascii=False, indent=2)
+                json.dump(snapshot, f, ensure_ascii=False, indent=2)
             os.replace(tmp, STATE_FILE)
             try:
                 with open(STATE_BACKUP, "w", encoding="utf-8") as f:
-                    json.dump(STATE, f, ensure_ascii=False, indent=2)
+                    json.dump(snapshot, f, ensure_ascii=False, indent=2)
             except Exception:
                 pass
         except Exception as e:
@@ -714,10 +734,11 @@ def _now():
 
 
 def u(uid):
-    uid = str(uid)
-    if uid not in STATE:
-        STATE[uid] = {"step": "start", "answers": {}, "joined": _now()}
-    return STATE[uid]
+    key = uid_str(uid)
+    with _state_data_lock:
+        if key not in STATE:
+            STATE[key] = {"step": "start", "answers": {}, "joined": _now()}
+        return STATE[key]
 
 
 def set_step(uid, step):
@@ -1280,7 +1301,7 @@ async def send_step(bot, uid, text, rows=None, skip_pause=False,
     markup = kb(rows) if rows else None
     if not skip_pause:
         await pause_text(bot, uid)
-    msg = await bot.send_message(uid, text, reply_markup=markup, **kwargs)
+    msg = await bot.send_message(normalize_uid(uid), text, reply_markup=markup, **kwargs)
     if rows:
         rec["last_kb_msg"] = msg.message_id
         set_active_callbacks(uid, rows)
@@ -1374,7 +1395,8 @@ def cancel_funnel_pause_jobs(app, uid):
     """Отменить отложенные шаги воронки (не трогает drip/промо)."""
     if not app or not app.job_queue:
         return
-    prefix = f"funnel_{uid}_pause_"
+    uid_i = normalize_uid(uid)
+    prefix = f"funnel_{uid_i}_pause_"
     for job in app.job_queue.jobs():
         if job.name and job.name.startswith(prefix):
             job.schedule_removal()
@@ -1385,12 +1407,13 @@ def schedule_funnel_pause(app, uid, delay_sec, callback, tag, extra=None):
     if not app or not app.job_queue:
         log.warning("job_queue недоступен — пауза %ss для uid=%s inline", delay_sec, uid)
         return
-    cancel_funnel_pause_jobs(app, uid)
+    uid_i = normalize_uid(uid)
+    cancel_funnel_pause_jobs(app, uid_i)
     app.job_queue.run_once(
         callback,
         when=max(0.05, delay_sec),
-        name=f"funnel_{uid}_pause_{tag}",
-        data={"uid": uid, **(extra or {})},
+        name=f"funnel_{uid_i}_pause_{tag}",
+        data={"uid": uid_i, **(extra or {})},
     )
 
 
@@ -1414,11 +1437,37 @@ async def safe_answer_callback(q, data=""):
 
 
 async def run_funnel_step(handler, update, context):
-    """Шаг воронки в фоне — не блокирует других пользователей."""
-    try:
-        await handler(update, context)
-    except Exception:
-        log.exception("funnel step %s failed", getattr(handler, "__name__", handler))
+    """Шаг воронки — один пользователь = одна цепочка, без перемешивания."""
+    uid = user_id_from(update)
+    q = update.callback_query
+    action = (q.data if q else None) or getattr(handler, "__name__", "?")
+    uid_s = uid_str(uid)
+
+    async with _user_funnel_locks[uid_s]:
+        rec = u(uid)
+        claims = rec.setdefault("funnel_claims", [])
+        if action in claims:
+            log.info("повторный клик: uid=%s action=%s", uid, action)
+            return
+        claims.append(action)
+        if len(claims) > 80:
+            rec["funnel_claims"] = claims[-40:]
+        invalidate_active_callbacks(uid)
+        save_state(STATE)
+        try:
+            await handler(update, context)
+        except Exception:
+            log.exception("funnel step %s failed uid=%s", action, uid)
+            if action in claims:
+                claims.remove(action)
+            save_state(STATE)
+
+
+async def run_uid_job(context, fn):
+    """Отложенный шаг воронки — uid из job.data, блокировка per-user."""
+    uid = normalize_uid(context.job.data["uid"])
+    async with _user_funnel_locks[uid_str(uid)]:
+        await fn(uid, context)
 
 
 async def send_text(bot, chat_id, text, **kwargs):
@@ -1827,13 +1876,15 @@ async def notify_media_fail(bot, chat_id, key, err):
 
 async def send_media_file(bot, chat_id, key, log=True):
     """Отправка видео/документа. True = ушло, False = ошибка (file_id и т.д.)."""
+    chat_id = normalize_uid(chat_id)
     ref = MEDIA.get(key, {})
     file_id = ref.get("file_id")
     if not file_id:
         path = ref.get("path")
         if path and os.path.exists(path):
-            with open(path, "rb") as f:
-                await bot.send_video(chat_id, f)
+            async with _media_send_sem:
+                with open(path, "rb") as f:
+                    await bot.send_video(chat_id, f)
             return True
         return False
     kind = ref.get("kind") or detect_kind(file_id)
@@ -1842,21 +1893,22 @@ async def send_media_file(bot, chat_id, key, log=True):
     except Exception:
         pass
     try:
-        if kind == "document":
-            await bot.send_document(
-                chat_id, file_id,
-                read_timeout=300,
-                write_timeout=300,
-                connect_timeout=60,
-            )
-        else:
-            await bot.send_video(
-                chat_id, file_id,
-                supports_streaming=True,
-                read_timeout=300,
-                write_timeout=300,
-                connect_timeout=60,
-            )
+        async with _media_send_sem:
+            if kind == "document":
+                await bot.send_document(
+                    chat_id, file_id,
+                    read_timeout=120,
+                    write_timeout=120,
+                    connect_timeout=30,
+                )
+            else:
+                await bot.send_video(
+                    chat_id, file_id,
+                    supports_streaming=True,
+                    read_timeout=120,
+                    write_timeout=120,
+                    connect_timeout=30,
+                )
         if log and chat_id not in _replaying_users:
             ms = MEDIA_MILESTONE.get(key)
             if ms:
@@ -1872,13 +1924,15 @@ async def send_media_file(bot, chat_id, key, log=True):
 
 
 async def send_circle(bot, chat_id, key, log=True):
+    chat_id = normalize_uid(chat_id)
     ref = MEDIA.get(key, {})
     fid = ref.get("file_id")
     if not fid:
         return False
     try:
         await bot.send_chat_action(chat_id, ChatAction.RECORD_VIDEO)
-        await bot.send_video_note(chat_id, fid)
+        async with _media_send_sem:
+            await bot.send_video_note(chat_id, fid)
         if log and chat_id not in _replaying_users:
             ms = MEDIA_MILESTONE.get(key)
             if ms:
@@ -1906,6 +1960,7 @@ def _resolve_photo_source(item):
 async def send_proofs(bot, chat_id, proofs, caption=None, log=True,
                       proofs_key=None, caption_key=None):
     """Фото по URL/file_id. Если у элемента есть caption — шлём по одному."""
+    chat_id = normalize_uid(chat_id)
     if log:
         invalidate_active_callbacks(chat_id)
     items = [p for p in proofs if _resolve_photo_source(p)]
@@ -2481,89 +2536,94 @@ async def _cmd_start_impl(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def _job_after_circle_intro(context: ContextTypes.DEFAULT_TYPE):
-    uid = context.job.data["uid"]
-    bot = context.application.bot
-    try:
-        await bot.send_chat_action(uid, ChatAction.TYPING)
-    except Exception:
-        pass
-    await send_step(bot, uid, TXT["after_circle_intro"],
-                    [(BTN["v1_watch"], "go_v1_play", False)],
-                    skip_pause=True, guide_teaser=True,
-                    milestone="after_circle_intro")
-    set_step(uid, "intro")
+    async def work(uid, ctx):
+        bot = ctx.application.bot
+        try:
+            await bot.send_chat_action(uid, ChatAction.TYPING)
+        except Exception:
+            pass
+        await send_step(bot, uid, TXT["after_circle_intro"],
+                        [(BTN["v1_watch"], "go_v1_play", False)],
+                        skip_pause=True, guide_teaser=True,
+                        milestone="after_circle_intro")
+        set_step(uid, "intro")
+    await run_uid_job(context, work)
 
 
 async def _job_after_v1_video(context: ContextTypes.DEFAULT_TYPE):
-    uid = context.job.data["uid"]
-    bot = context.application.bot
-    app = context.application
-    try:
-        await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
-    except Exception:
-        pass
-    await send_step(bot, uid, TXT["after_v1_video"],
-                    [(BTN["v1_proofs"], "go_v1_proofs", False)],
-                    skip_pause=True, milestone="after_v1_video")
-    set_step(uid, "v1")
-    schedule_drip(app, uid, "after_v1", DRIP_HOURS["after_v1"])
+    async def work(uid, ctx):
+        bot = ctx.application.bot
+        app = ctx.application
+        try:
+            await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
+        except Exception:
+            pass
+        await send_step(bot, uid, TXT["after_v1_video"],
+                        [(BTN["v1_proofs"], "go_v1_proofs", False)],
+                        skip_pause=True, milestone="after_v1_video")
+        set_step(uid, "v1")
+        schedule_drip(app, uid, "after_v1", DRIP_HOURS["after_v1"])
+    await run_uid_job(context, work)
 
 
 async def _job_after_v2_video(context: ContextTypes.DEFAULT_TYPE):
-    uid = context.job.data["uid"]
-    bot = context.application.bot
-    try:
-        await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
-    except Exception:
-        pass
-    await send_step(bot, uid, TXT["after_v2_video"],
-                    [(BTN["v2_proofs"], "go_v2_proofs", False)],
-                    skip_pause=True, milestone="after_v2_video")
-    set_step(uid, "v2")
+    async def work(uid, ctx):
+        bot = ctx.application.bot
+        try:
+            await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
+        except Exception:
+            pass
+        await send_step(bot, uid, TXT["after_v2_video"],
+                        [(BTN["v2_proofs"], "go_v2_proofs", False)],
+                        skip_pause=True, milestone="after_v2_video")
+        set_step(uid, "v2")
+    await run_uid_job(context, work)
 
 
 async def _job_after_v3_video(context: ContextTypes.DEFAULT_TYPE):
-    uid = context.job.data["uid"]
-    bot = context.application.bot
-    app = context.application
-    try:
-        await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
-    except Exception:
-        pass
-    await send_step(bot, uid, TXT["after_v3_video"],
-                    [(BTN["to_fork"], "go_v3_after", False)],
-                    skip_pause=True, milestone="after_v3_video")
-    set_step(uid, "v3")
-    schedule_drip(app, uid, "after_v3", DRIP_HOURS["after_v3"])
+    async def work(uid, ctx):
+        bot = ctx.application.bot
+        app = ctx.application
+        try:
+            await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
+        except Exception:
+            pass
+        await send_step(bot, uid, TXT["after_v3_video"],
+                        [(BTN["to_fork"], "go_v3_after", False)],
+                        skip_pause=True, milestone="after_v3_video")
+        set_step(uid, "v3")
+        schedule_drip(app, uid, "after_v3", DRIP_HOURS["after_v3"])
+    await run_uid_job(context, work)
 
 
 async def _job_after_fork_circle(context: ContextTypes.DEFAULT_TYPE):
-    uid = context.job.data["uid"]
-    bot = context.application.bot
-    app = context.application
-    try:
-        await bot.send_chat_action(uid, ChatAction.TYPING)
-    except Exception:
-        pass
-    set_step(uid, "offer")
-    await send_step(
-        bot, uid, TXT["after_fork_circle"],
-        fork_inline_rows(uid),
-        skip_pause=True, skip_questions_hint=True,
-        milestone="after_fork",
-    )
-    track_milestone(uid, "after_fork")
-    await refresh_main_keyboard(
-        bot, uid,
-        "👇 Кнопки меню закреплены внизу — ими можно пользоваться "
-        "в любой момент.",
-    )
-    schedule_bonus_remind(app, uid)
-    schedule_drip(app, uid, "after_offer", DRIP_HOURS["after_offer"])
+    async def work(uid, ctx):
+        bot = ctx.application.bot
+        app = ctx.application
+        try:
+            await bot.send_chat_action(uid, ChatAction.TYPING)
+        except Exception:
+            pass
+        set_step(uid, "offer")
+        await send_step(
+            bot, uid, TXT["after_fork_circle"],
+            fork_inline_rows(uid),
+            skip_pause=True, skip_questions_hint=True,
+            milestone="after_fork",
+        )
+        track_milestone(uid, "after_fork")
+        await refresh_main_keyboard(
+            bot, uid,
+            "👇 Кнопки меню закреплены внизу — ими можно пользоваться "
+            "в любой момент.",
+        )
+        schedule_bonus_remind(app, uid)
+        schedule_drip(app, uid, "after_offer", DRIP_HOURS["after_offer"])
+    await run_uid_job(context, work)
 
 
 async def go_intro(update, context):
-    uid = update.effective_user.id
+    uid = user_id_from(update)
     bot = context.bot
     hold = None
     try:
@@ -2616,9 +2676,14 @@ async def go_v1_play(update, context):
 
 async def go_v1_proofs(update, context):
     """После видео 1: intro → пауза → 2 скрина → пауза → основной текст."""
-    uid = update.effective_user.id
+    uid = user_id_from(update)
     bot = context.bot
-    invalidate_active_callbacks(uid)
+    rec = u(uid)
+    if rec.get("milestone") in (
+        "proofs_v1", "after_v1_proofs", "proofs_v1_caption", "bridge_v2", "v2",
+    ):
+        log.info("skip duplicate v1_proofs uid=%s milestone=%s", uid, rec.get("milestone"))
+        return
     intro = TXT["proofs_v1_intro"]
     await pause_text(bot, uid)
     await bot.send_message(uid, intro)
@@ -2981,10 +3046,9 @@ async def go_guide(update, context):
 async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     d = q.data or ""
-    uid = update.effective_user.id
-    # Сразу отвечаем Telegram (иначе «Query is too old») и шаг воронки — в фоне.
-    asyncio.create_task(safe_answer_callback(q, d))
-    asyncio.create_task(_on_button_impl(update, context, d, uid))
+    await safe_answer_callback(q, d)
+    uid = user_id_from(update)
+    await _on_button_impl(update, context, d, uid)
 
 
 async def _on_button_impl(update: Update, context: ContextTypes.DEFAULT_TYPE,
@@ -3032,7 +3096,7 @@ async def _on_button_impl(update: Update, context: ContextTypes.DEFAULT_TYPE,
         "lm_check":         lm_check,
     }
     if d in routes:
-        asyncio.create_task(run_funnel_step(routes[d], update, context))
+        await run_funnel_step(routes[d], update, context)
         return
     if d.startswith("mk_"):
         # mk_{lead_id}_{status} — только админ
@@ -3530,7 +3594,7 @@ def main():
 
     from telegram.request import HTTPXRequest
     tg_request = HTTPXRequest(
-        connection_pool_size=32,
+        connection_pool_size=64,
         read_timeout=90,
         write_timeout=90,
         connect_timeout=30,
