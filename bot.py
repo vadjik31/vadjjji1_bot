@@ -62,7 +62,7 @@ HOWMANY_URL = (
 
 MENU_FORMATS = "💎 Форматы сотрудничества и обучения"
 MENU_RESULTS = "📈 Результаты учеников"
-MENU_GUIDE = "📘 Забрать гайд"
+MENU_GUIDE = "📘 Забрать гайд, 3 фатальных ошибки"
 MENU_ABOUT = "👤 Обо мне"
 MENU_EARN = "💸 Сколько заработать"
 MENU_QUESTIONS = "💬 У меня есть вопросы"
@@ -355,13 +355,13 @@ TXT = {
         "какие страхи чаще всего мешают начать."
     ),
     "after_v3": (
-        "Теперь покажу, как пройти этот путь без хаоса, догадок и ошибок, "
-        "которые обычно стоят денег 👇"
+        "Как получить первые продажи на Амазон без хаоса и ошибок? "
+        "Хотите узнать? Если да, то клацайте 👇"
     ),
-    "after_v1_proofs": (
-        "Готовы к следующему шагу? 👇\n\n"
-        "Покажу, откуда вообще берётся прибыль на Amazon — простыми "
-        "словами."
+    "bonus_offer_after_app": (
+        "Но вы могли бы активировать бонус и получить уникальные цены "
+        "для вас, которые значительно комфортнее, а также супер-предложение!\n\n"
+        "Активировать?"
     ),
     "after_fork_circle": (
         "👀 Смотрите.\n\n"
@@ -595,6 +595,7 @@ BTN = {
     # промо
     "promo_get":  "🔥 Забрать скидку −20%",
     "promo_app":  "💎 Открыть программы со скидкой",
+    "activate_bonus": "✅ Активировать",
 }
 
 
@@ -1470,11 +1471,54 @@ async def handle_webapp_ready(bot, uid):
     rec["webapp_engaged"] = True
     rec["webapp_engaged_at"] = _now()
     save_state(STATE)
-    disc = "со скидкой" if user_uses_discount_pay(uid) else "по стандартной цене"
+    if user_uses_discount_pay(uid):
+        await refresh_main_keyboard(
+            bot, uid,
+            "💳 Кнопки оплаты по форматам (со скидкой) — в меню внизу 👇",
+        )
+        return
     await refresh_main_keyboard(
         bot, uid,
-        f"💳 Кнопки оплаты по форматам ({disc}) — в меню внизу 👇",
+        "💳 Кнопки оплаты по форматам (по стандартной цене) — в меню внизу 👇",
     )
+    if is_funnel_locked(rec) or not PROMO_SECRET:
+        return
+    await send_step(
+        bot, uid, TXT["bonus_offer_after_app"],
+        [(BTN["activate_bonus"], "activate_bonus", False)],
+        skip_pause=True,
+    )
+
+
+async def activate_bonus(update, context):
+    """Активировать бонус после 30 с в аппке — как claim_promo в Mini App."""
+    q = update.callback_query
+    await q.answer()
+    uid = update.effective_user.id
+    user = update.effective_user
+    rec = u(uid)
+    if is_funnel_locked(rec) and not is_exempt_user(user):
+        await send_with_main_menu(context.bot, uid, TXT["return_locked"])
+        return
+    promo = rec.get("promo") or {}
+    if promo.get("deadline", 0) > time.time():
+        await context.bot.send_message(
+            uid,
+            "Бонус уже активен 👇 Откройте «Форматы сотрудничества» — "
+            "цены уже со скидкой.",
+        )
+        return
+    if not PROMO_SECRET:
+        await send_step(
+            context.bot, uid,
+            "Скидка пока настраивается. Напишите мне 👇",
+            [(BTN["contact"], CALL_LINK, True)],
+        )
+        return
+    if not rec.get("temperature"):
+        rec["temperature"] = "warm"
+    save_state(STATE)
+    await show_promo(context, uid, user, rec.get("temperature", "warm"))
 
 
 def fork_inline_rows(uid):
@@ -2647,6 +2691,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "go_programs":      go_programs,
         "go_students":      go_students,
         "go_lead":          go_lead,
+        "activate_bonus":   activate_bonus,
         "go_guide":         go_guide,
         "lm_want":          lm_want,
         "lm_skip":          lm_skip,
