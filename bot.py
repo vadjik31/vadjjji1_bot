@@ -73,6 +73,8 @@ QUESTIONS_STEPS = frozenset({
     "fork", "offer", "lead", "qualified", "qualified_cold",
 })
 PROOFS_BEFORE_CAPTION_SEC = 5.0
+PROOFS_V1_INTRO_PAUSE_SEC = 5.0
+PROOFS_V1_BEFORE_MAIN_SEC = 4.0
 
 SITE_PAY_ORIGIN = "https://vadjik.com"
 WEBAPP_ENGAGE_SEC = 30
@@ -266,10 +268,12 @@ TXT = {
         "Дальше — разбор: почему первый список товаров не сработал и "
         "что изменилось после правок."
     ),
-    "proofs_v1_caption": (
+    "proofs_v1_intro": (
         "📈 Кстати, выше — реальные результаты учеников на Amazon. Такого "
         "уровня можно достичь, если идти по шагам, а не «угадывать» "
-        "товар наугад.\n\n"
+        "товар наугад."
+    ),
+    "proofs_v1_caption": (
         "💡 Вот почему этот пример важен.\n\n"
         "🔄 Игорь тоже не нашёл хороший товар с первого раза: где-то не "
         "сходились цифры, где-то товар не подходил, где-то закупка "
@@ -365,9 +369,13 @@ TXT = {
         "✅ Поэтому я сделал формат, где можно идти по шагам, с проверками "
         "и поддержкой.\n\n"
         "📋 Разделы — в меню внизу 👇\n\n"
-        "💸 Калькулятор «Сколько заработать» — там же.\n\n"
-        "🔥 Кстати, зайдите в «Форматы сотрудничества и обучения» — "
-        "для вас там супер-бонус!"
+        "💸 Калькулятор внизу покажет, сколько вы можете заработать на "
+        "Amazon.\n\n"
+        "🔥 В «Форматы сотрудничества и обучения» — узнаете, как пройти "
+        "путь быстро и получить первую прибыль через полтора месяца. "
+        "А также пошаговый путь от вашего нуля к продажам на Amazon.\n\n"
+        "💬 Если есть любой вопрос — внизу кнопка «У меня есть вопросы». "
+        "Не стесняйтесь нажимать."
     ),
     "after_fork_menu_hint": (
         "📋 Всё подробно — в меню внизу 👇\n\n"
@@ -561,6 +569,7 @@ BTN = {
     "v3_watch":   "▶️ Смотреть: почему не начинают (~7 мин)",
     "to_v3":      "▶️ Почему не начинают (~7 мин)",
     "to_fork":    "➡️ Дальше",
+    "to_fork_how": "Как пройти",
     "students":   "Результаты учеников",
     "programs":   "💎 Открыть мини-приложение",
     "site":       "Открыть сайт с результатами",
@@ -1180,12 +1189,14 @@ def append_guide_teaser(uid, text):
 
 async def send_step(bot, uid, text, rows=None, skip_pause=False,
                     guide_teaser=False, questions_hint=False,
-                    milestone=None, **kwargs):
+                    skip_questions_hint=False, milestone=None, **kwargs):
     """Отправляет сообщение. Кнопки старых сообщений остаются на экране,
     но работает только последний набор callback-кнопок."""
     if guide_teaser:
         text = append_guide_teaser(uid, text)
-    if questions_hint or u(uid).get("step") in QUESTIONS_STEPS:
+    if not skip_questions_hint and (
+        questions_hint or u(uid).get("step") in QUESTIONS_STEPS
+    ):
         text = append_questions_hint(uid, text)
     if milestone:
         track_milestone(uid, milestone)
@@ -1375,7 +1386,35 @@ def pay_keyboard_rows(uid):
 async def refresh_main_keyboard(bot, uid, hint=None):
     """Обновить нижнее меню (например, после 30 с в Mini App)."""
     text = hint or "👇"
-    await bot.send_message(uid, text, reply_markup=main_reply_keyboard(uid))
+    try:
+        await bot.send_message(
+            uid, text, reply_markup=main_reply_keyboard(uid),
+        )
+    except Exception as e:
+        log.error("refresh_main_keyboard failed: %s", e)
+        try:
+            await bot.send_message(
+                uid, text,
+                reply_markup=main_reply_keyboard_fallback(uid),
+            )
+        except Exception as e2:
+            log.error("refresh_main_keyboard fallback failed: %s", e2)
+
+
+def main_reply_keyboard_fallback(uid=None):
+    """Меню без WebApp/url — если клиент не принял полную клавиатуру."""
+    rows = [
+        [KeyboardButton(MENU_FORMATS)],
+        [KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)],
+        [KeyboardButton(MENU_ABOUT)],
+        [KeyboardButton(MENU_EARN)],
+        [KeyboardButton(MENU_QUESTIONS)],
+    ]
+    if uid is not None:
+        rows.extend(pay_keyboard_rows(uid))
+    return ReplyKeyboardMarkup(
+        rows, resize_keyboard=True, is_persistent=True,
+    )
 
 
 async def mark_webapp_opened(bot, uid):
@@ -1406,10 +1445,28 @@ async def handle_webapp_ready(bot, uid):
     )
 
 
+def fork_inline_rows(uid):
+    """Кнопки под сообщением после форка — видны сразу, даже если меню
+    внизу ещё не раскрылось."""
+    rows = []
+    if WEBAPP_URL:
+        rows.append([programs_btn()])
+    hm = howmany_webapp_url()
+    if hm:
+        rows.append([(MENU_EARN, hm, "webapp")])
+    rows.append([(MENU_RESULTS, RESULTS_LINK, True)])
+    rows.append([
+        (BTN["lm_get"], "go_guide", False),
+        (BTN["contact"], CALL_LINK, True),
+    ])
+    return rows
+
+
 def main_menu_filter():
     """Только нажатия кнопок нижнего меню (не WebApp — они открываются сами)."""
     labels = "|".join(re.escape(x) for x in (
         MENU_FORMATS, MENU_RESULTS, MENU_GUIDE, MENU_ABOUT, MENU_EARN,
+        MENU_QUESTIONS,
     ))
     return filters.Regex(f"^({labels})$")
 
@@ -1434,7 +1491,7 @@ def main_reply_keyboard(uid=None):
             KeyboardButton(MENU_EARN, web_app=WebAppInfo(url=hm)),
         ])
     rows.append([
-        KeyboardButton(MENU_QUESTIONS, api_kwargs={"url": CALL_LINK}),
+        KeyboardButton(MENU_QUESTIONS),
     ])
     if uid is not None:
         rows.extend(pay_keyboard_rows(uid))
@@ -1443,7 +1500,8 @@ def main_reply_keyboard(uid=None):
     )
 
 
-async def send_with_main_menu(bot, chat_id, text, clear_inline=False):
+async def send_with_main_menu(bot, chat_id, text, clear_inline=False,
+                              skip_questions_hint=False):
     """Текст + нижнее меню. Inline-кнопки прошлых сообщений не снимаем."""
     invalidate_active_callbacks(chat_id)
     if clear_inline:
@@ -1456,7 +1514,8 @@ async def send_with_main_menu(bot, chat_id, text, clear_inline=False):
             except Exception:
                 pass
             rec["last_kb_msg"] = None
-    text = append_questions_hint(chat_id, text)
+    if not skip_questions_hint:
+        text = append_questions_hint(chat_id, text)
     await pause_text(bot, chat_id, text=text)
     msg = await bot.send_message(
         chat_id, text, reply_markup=main_reply_keyboard(chat_id),
@@ -2148,10 +2207,19 @@ async def go_v1_play(update, context):
 
 
 async def go_v1_proofs(update, context):
-    """Скрины после видео 1 → один текст + кнопка к видео 2."""
+    """После видео 1: intro → пауза → 2 скрина → пауза → основной текст."""
     uid = update.effective_user.id
     bot = context.bot
+    invalidate_active_callbacks(uid)
+    intro = TXT["proofs_v1_intro"]
+    await bot.send_message(uid, intro)
+    if uid not in _replaying_users and not is_funnel_locked(u(uid)):
+        push_history(uid, {"t": "text", "body": intro, "rows": None})
+    if pauses_enabled_for(uid) and not user_fast_mode(uid):
+        await asyncio.sleep(PROOFS_V1_INTRO_PAUSE_SEC)
     await send_proofs(bot, uid, PROOFS_AFTER_V1, proofs_key="v1")
+    if pauses_enabled_for(uid) and not user_fast_mode(uid):
+        await asyncio.sleep(PROOFS_V1_BEFORE_MAIN_SEC)
     await send_step(
         bot, uid, TXT["proofs_v1_caption"],
         [(BTN["to_v2"], "go_v2_prep", False)],
@@ -2220,8 +2288,6 @@ async def go_v3_video(update, context):
     uid = update.effective_user.id
     bot = context.bot
     cancel_drips(context.application, uid)
-    await send_step(bot, uid, TXT["v3_loading"],
-                    skip_pause=True, milestone="v3_loading")
     if not await send_media_file(bot, uid, "video_3"):
         return
     # Кнопку «дальше» сразу под видео — без паузы 2+ мин (иначе кажется, что не сработало)
@@ -2236,7 +2302,7 @@ async def go_v3_after(update, context):
     uid = update.effective_user.id
     bot = context.bot
     await send_step(bot, uid, TXT["after_v3"],
-                    [(BTN["to_fork"], "go_fork", False)],
+                    [(BTN["to_fork_how"], "go_fork", False)],
                     skip_pause=True, guide_teaser=True,
                     milestone="after_v3")
 
@@ -2249,8 +2315,18 @@ async def go_fork(update, context):
         return
     await pause_after_circle(bot, uid)
     set_step(uid, "offer")
-    await send_with_main_menu(bot, uid, TXT["after_fork_circle"])
+    await send_step(
+        bot, uid, TXT["after_fork_circle"],
+        fork_inline_rows(uid),
+        skip_pause=True, skip_questions_hint=True,
+        milestone="after_fork",
+    )
     track_milestone(uid, "after_fork")
+    await refresh_main_keyboard(
+        bot, uid,
+        "👇 Кнопки меню закреплены внизу — ими можно пользоваться "
+        "в любой момент.",
+    )
     schedule_drip(context.application, uid, "after_offer",
                   DRIP_HOURS["after_offer"])
 
@@ -2423,9 +2499,23 @@ async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     uid = update.effective_user.id
     text = msg.text.strip()
-    if text not in (MENU_FORMATS, MENU_RESULTS, MENU_GUIDE, MENU_ABOUT, MENU_EARN):
+    if text not in (
+        MENU_FORMATS, MENU_RESULTS, MENU_GUIDE, MENU_ABOUT, MENU_EARN,
+        MENU_QUESTIONS,
+    ):
         return
     bot = context.bot
+    if text == MENU_QUESTIONS:
+        await send_with_main_menu(
+            bot, uid,
+            "Напишите мне — отвечу лично 👇",
+            clear_inline=False, skip_questions_hint=True,
+        )
+        await bot.send_message(
+            uid, "👇",
+            reply_markup=kb([(BTN["contact"], CALL_LINK, True)]),
+        )
+        return
     if text == MENU_EARN:
         hm = howmany_webapp_url()
         if hm:
