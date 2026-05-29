@@ -219,6 +219,8 @@ HOWMANY_SCREENS = [
     {"file_id": "AgACAgIAAxkBAAICNWoZYKtNeD9n40dWVg0Dxe5nams2AAIaHGsblIrRSGz3zk84tdonAQADAgADeQADOwQ"},
     {"file_id": "AgACAgIAAxkBAAICN2oZYLZORkUUb7Q7vIgtC9JgFCbQAAIbHGsblIrRSL8Psdezzt8PAQADAgADeQADOwQ"},
 ]
+# Публичные URL картинок для Mini App (заполняется при старте бота из file_id).
+HOWMANY_IMG_URLS = []
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -253,21 +255,21 @@ TXT = {
     ),
     "after_circle_intro": (
         "Приятно познакомиться 🙂\n\n"
-        "📦 Дальше ты лучше поймёшь, как на самом деле работает Amazon и с "
-        "чего можно начать без хаоса и догадок.\n\n"
-        "🎬 Сейчас — история Игоря (~4 мин), коротко и по делу:\n\n"
-        "1️⃣ с чего он вообще начинал;\n"
-        "2️⃣ почему первые товары не подошли;\n"
-        "3️⃣ что он изменил в подходе;\n"
-        "4️⃣ как в итоге вышел на первые чистые деньги.\n\n"
-        "✅ Без лишней воды — реальный путь от «не понимаю, что делать» "
-        "до первого результата.\n\n"
+        "Дальше покажу, как на самом деле работает Amazon — без хаоса, "
+        "догадок и красивых обещаний.\n\n"
+        "Сейчас — короткая история Игоря на 4 минуты.\n\n"
+        "Он тоже начинал с нуля: не понимал, какие товары выбирать, "
+        "где искать поставщиков и как вообще подойти к первой закупке.\n\n"
+        "В видео разберём, почему первые товары не сработали, что он "
+        "изменил в подходе и как в итоге вышел на первые чистые деньги.\n\n"
+        "Без воды и мотивационных сказок — просто реальный путь от "
+        "«я не понимаю, что делать» до первого результата.\n\n"
         "▶️ Включай 👇"
     ),
     "after_v1_video": (
         "Досмотрели? 👇\n\n"
-        "Дальше — разбор: почему первый список товаров не сработал и "
-        "что изменилось после правок."
+        "А теперь самое важное: почему первый список товаров оказался "
+        "слабым, какие ошибки в нём были — и что изменилось после правок."
     ),
     "proofs_v1_intro": (
         "📈 Кстати, ниже — реальные результаты учеников на Amazon. Такого "
@@ -276,19 +278,20 @@ TXT = {
     ),
     "proofs_v1_caption": (
         "💡 Вот почему этот пример важен.\n\n"
-        "🔄 Игорь тоже не нашёл хороший товар с первого раза: где-то не "
-        "сходились цифры, где-то товар не подходил, где-то закупка "
-        "просто не имела смысла.\n\n"
-        "Он получил правки, переделал работу — и уже во второй раз нашёл "
-        "нормальные варианты.\n\n"
-        "➡️ Дальше всё пошло по цепочке:\n\n"
+        "Игорь тоже не нашёл хороший товар с первого раза.\n\n"
+        "Где-то не сходились цифры.\n"
+        "Где-то товар выглядел нормально, но на практике не подходил.\n"
+        "А где-то закупка просто не имела смысла.\n\n"
+        "Но в этом и суть: он не бросил, а получил правки, переделал "
+        "работу — и уже со второй попытки нашёл нормальные варианты.\n\n"
+        "Дальше всё пошло по цепочке:\n\n"
         "📦 закупка → 🏷 подготовка → 🚚 отправка на Amazon → "
         "💵 продажи → ✅ чистая прибыль.\n\n"
-        "Так и выглядит нормальный путь: не угадал, а проверил, "
-        "исправил и получил результат.\n\n"
+        "Так и выглядит реальный путь на Amazon:\n"
+        "не «угадал товар», а проверил, исправил и дошёл до результата.\n\n"
         "Готовы к следующему шагу? 👇\n\n"
-        "Покажу, откуда вообще берётся прибыль на Amazon — простыми "
-        "словами."
+        "Сейчас покажу простыми словами, откуда вообще берётся прибыль "
+        "на Amazon."
     ),
     "after_v1": (
         "💡 Смысл не в том, что Игорь сразу всё понял.\n\n"
@@ -346,12 +349,14 @@ TXT = {
         "Подождите несколько секунд — ролик появится следующим сообщением."
     ),
     "after_v3_video": (
-        "Досмотрели? 👇\n\n"
-        "🎯 Если дошли до конца — у вас уже есть база: путь Игоря, схема "
-        "и разбор причин, почему люди не начинают."
+        "✅ Если вы дошли до этого момента, вы уже сделали больше, чем "
+        "большинство.\n\n"
+        "📋 Вы разобрали путь Игоря, увидели рабочую схему и поняли, "
+        "какие страхи чаще всего мешают начать."
     ),
     "after_v3": (
-        "Дальше — как пройти этот путь без хаоса и лишних ошибок 👇"
+        "Теперь покажу, как пройти этот путь без хаоса, догадок и ошибок, "
+        "которые обычно стоят денег 👇"
     ),
     "after_v1_proofs": (
         "Готовы к следующему шагу? 👇\n\n"
@@ -360,23 +365,25 @@ TXT = {
     ),
     "after_fork_circle": (
         "👀 Смотрите.\n\n"
-        "Разобраться самому можно. Но проблема не в том, что информации "
-        "мало.\n\n"
-        "⚠️ Новичок часто не понимает, где ошибка станет дорогой:\n\n"
-        "— плохой поставщик;\n"
-        "— товар, который не продаётся;\n"
-        "— ошибки в документах;\n"
-        "— неправильный расчёт прибыли.\n\n"
-        "✅ Поэтому я сделал формат, где можно идти по шагам, с проверками "
-        "и поддержкой.\n\n"
-        "📋 Разделы — в меню внизу 👇\n\n"
-        "💸 Калькулятор внизу покажет, сколько вы можете заработать на "
-        "Amazon.\n\n"
-        "🔥 В «Форматы сотрудничества и обучения» — узнаете, как пройти "
-        "путь быстро и получить первую прибыль через полтора месяца. "
-        "А также пошаговый путь от вашего нуля к продажам на Amazon.\n\n"
-        "💬 Если есть любой вопрос — внизу кнопка «У меня есть вопросы». "
-        "Не стесняйтесь нажимать."
+        "Самостоятельно разобраться можно.\n"
+        "Но на практике большинство новичков теряют время и деньги не "
+        "из-за отсутствия информации.\n\n"
+        "А из-за ошибок, которые сначала кажутся мелочами:\n\n"
+        "— поставщик выглядит нормальным, но потом не проходит проверку;\n"
+        "— товар кажется прибыльным, но не продаётся;\n"
+        "— документы оформлены не так, как нужно;\n"
+        "— прибыль посчитана без комиссий, налогов и реальных расходов.\n\n"
+        "Именно поэтому я сделал формат, где вы проходите путь не "
+        "вслепую, а по понятной системе: шаг за шагом, с проверками, "
+        "поддержкой и фокусом на первую прибыль.\n\n"
+        "📋 Все разделы — в меню внизу 👇\n\n"
+        "💸 Калькулятор поможет быстро оценить, сколько вы можете "
+        "зарабатывать на Amazon.\n\n"
+        "🔥 В «Форматах сотрудничества и обучения» — разбор, как пройти "
+        "путь от нуля до первых продаж и выйти на результат примерно за "
+        "полтора месяца.\n\n"
+        "💬 Если остался вопрос — нажмите «У меня есть вопросы».\n"
+        "Лучше задать его сейчас, чем потом ошибиться на практике."
     ),
     "after_fork_menu_hint": (
         "📋 Всё подробно — в меню внизу 👇\n\n"
@@ -1309,19 +1316,44 @@ def bot_username_slug():
 
 
 def howmany_webapp_url():
-    """HTTPS-адрес второй Mini App (калькculator). Из Railway: Howmany."""
+    """HTTPS-адрес калькулятора + contact и img1…img4 для скринов в аппке."""
     url = (HOWMANY_URL or "").strip()
     if not url:
         return ""
     if not url.startswith("http"):
         url = "https://" + url
     url = url.rstrip("/")
-    # GitHub Pages: если в репо только amazon-calc.html (без index.html),
-    # корень /apppp/ даёт 404 — нужен полный путь к файлу.
     last = url.rsplit("/", 1)[-1]
     if "." not in last:
         url = url + "/amazon-calc.html"
+    extra = [f"contact={quote(CALL_LINK, safe='')}"]
+    for i, img in enumerate(HOWMANY_IMG_URLS, 1):
+        if img:
+            extra.append(f"img{i}={quote(img, safe='')}")
+    sep = "&" if "?" in url else "?"
+    url += sep + "&".join(extra)
     return url
+
+
+async def refresh_howmany_img_urls(bot):
+    """file_id → HTTPS-URL для <img> в amazon-calc.html (кэш при старте)."""
+    global HOWMANY_IMG_URLS
+    base = f"https://api.telegram.org/file/bot{BOT_TOKEN}/"
+    out = []
+    for item in HOWMANY_SCREENS:
+        fid = item.get("file_id")
+        if not fid:
+            out.append("")
+            continue
+        try:
+            f = await bot.get_file(fid)
+            out.append(base + f.file_path)
+        except Exception as e:
+            log.error("howmany img %s: %s", fid[:20], e)
+            out.append("")
+    HOWMANY_IMG_URLS = out
+    ok = sum(1 for u in out if u)
+    log.info("HOWMANY скрины в аппке: %s/4 URL готовы", ok)
 
 
 def webapp_url_full(uid=None):
@@ -1407,8 +1439,7 @@ def main_reply_keyboard_fallback(uid=None):
     rows = [
         [KeyboardButton(MENU_FORMATS)],
         [KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)],
-        [KeyboardButton(MENU_ABOUT)],
-        [KeyboardButton(MENU_EARN)],
+        [KeyboardButton(MENU_ABOUT), KeyboardButton(MENU_EARN)],
         [KeyboardButton(MENU_QUESTIONS)],
     ]
     if uid is not None:
@@ -1455,8 +1486,6 @@ def fork_inline_rows(uid):
     hm = howmany_webapp_url()
     if hm:
         rows.append([(MENU_EARN, hm, "webapp")])
-    else:
-        rows.append([(MENU_EARN, "open_howmany", False)])
     rows.append([(MENU_RESULTS, RESULTS_LINK, True)])
     rows.append([
         (BTN["lm_get"], "go_guide", False),
@@ -1477,7 +1506,6 @@ def main_menu_filter():
 def main_reply_keyboard(uid=None):
     """Нижнее закреплённое меню (как на скрине)."""
     rows = []
-    hm = howmany_webapp_url()
     if WEBAPP_URL:
         rows.append([
             KeyboardButton(
@@ -1488,13 +1516,17 @@ def main_reply_keyboard(uid=None):
     else:
         rows.append([KeyboardButton(MENU_FORMATS)])
     rows.append([KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)])
-    rows.append([KeyboardButton(MENU_ABOUT)])
+    hm = howmany_webapp_url()
     if hm:
         rows.append([
+            KeyboardButton(MENU_ABOUT),
             KeyboardButton(MENU_EARN, web_app=WebAppInfo(url=hm)),
         ])
     else:
-        rows.append([KeyboardButton(MENU_EARN)])
+        rows.append([
+            KeyboardButton(MENU_ABOUT),
+            KeyboardButton(MENU_EARN),
+        ])
     rows.append([
         KeyboardButton(MENU_QUESTIONS),
     ])
@@ -2681,6 +2713,12 @@ async def cmd_checkmedia(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ok, msg = await probe_file_id(context.bot, fid)
         icon = "✅" if ok else "❌"
         lines.append(f"{icon} {key} ({kind}): {msg}")
+    lines.append("\nHOWMANY_SCREENS (калькулятор):")
+    for i, item in enumerate(HOWMANY_SCREENS, 1):
+        fid = item.get("file_id", "")
+        ok, msg = await probe_file_id(context.bot, fid)
+        icon = "✅" if ok else "❌"
+        lines.append(f"{icon} howmany_{i}: {msg}")
     lines.append(
         "\n❌ = file_id не от этого бота или устарел.\n"
         "Исправление: перешли ролик ЭТОМУ боту → /id → вставь в MEDIA → redeploy."
@@ -2709,7 +2747,10 @@ async def grab_file_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Потом /checkmedia — должно быть ✅."
         )
     elif m.photo:
-        out = f"ФОТО\nfile_id:\n{m.photo[-1].file_id}"
+        out = (
+            f"ФОТО\nfile_id:\n{m.photo[-1].file_id}\n\n"
+            "Для калькулятора — в HOWMANY_SCREENS в bot.py (4 штуки)."
+        )
     elif m.document:
         mt = m.document.mime_type or ""
         extra = ""
@@ -2865,20 +2906,19 @@ async def cmd_programs(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_howmany(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Калькулятор — кнопка в меню внизу (Mini App)."""
+    """Калькулятор — кнопка «Сколько заработать» в меню (Mini App)."""
     uid = update.effective_user.id
     bot = context.bot
     if not howmany_webapp_url():
         await bot.send_message(
             uid,
-            "Калькулятор пока не подключён (в Railway не задана переменная Howmany).",
+            "Калькулятор пока не подключён.",
         )
         return
-    await send_proofs(bot, uid, HOWMANY_SCREENS, log=False)
     await send_with_main_menu(
         bot, uid,
-        "💸 Калькулятор «Сколько можно заработать» — кнопка в меню внизу, "
-        "рядом с «Обо мне» 👇",
+        "💸 Нажмите «Сколько заработать» в меню внизу — откроется "
+        "калькулятор со скринами 👇",
         clear_inline=False,
     )
 
@@ -3006,6 +3046,20 @@ async def post_init(application):
                 "MEDIA невалидны для текущего BOT_TOKEN: %s",
                 "; ".join(bad),
             )
+        bad_hm = []
+        for i, item in enumerate(HOWMANY_SCREENS, 1):
+            fid = item.get("file_id")
+            if not fid:
+                continue
+            ok, msg = await probe_file_id(application.bot, fid)
+            if not ok:
+                bad_hm.append(f"howmany_{i}: {msg}")
+        if bad_hm:
+            log.error(
+                "HOWMANY_SCREENS невалидны для BOT_TOKEN: %s",
+                "; ".join(bad_hm),
+            )
+        await refresh_howmany_img_urls(application.bot)
     except Exception as e:
         log.warning("post_init: %s", e)
     setup_auto_reports(application)
