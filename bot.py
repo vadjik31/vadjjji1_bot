@@ -57,6 +57,7 @@ HOWMANY_URL = (
     os.getenv("Howmany", "").strip()
     or os.getenv("HOWMANY", "").strip()
     or os.getenv("HOWMANY_URL", "").strip()
+    or "https://vadjik31.github.io/apppp/amazon-calc.html"
 )
 
 MENU_FORMATS = "💎 Форматы сотрудничества и обучения"
@@ -269,7 +270,7 @@ TXT = {
         "что изменилось после правок."
     ),
     "proofs_v1_intro": (
-        "📈 Кстати, выше — реальные результаты учеников на Amazon. Такого "
+        "📈 Кстати, ниже — реальные результаты учеников на Amazon. Такого "
         "уровня можно достичь, если идти по шагам, а не «угадывать» "
         "товар наугад."
     ),
@@ -1454,6 +1455,8 @@ def fork_inline_rows(uid):
     hm = howmany_webapp_url()
     if hm:
         rows.append([(MENU_EARN, hm, "webapp")])
+    else:
+        rows.append([(MENU_EARN, "open_howmany", False)])
     rows.append([(MENU_RESULTS, RESULTS_LINK, True)])
     rows.append([
         (BTN["lm_get"], "go_guide", False),
@@ -1490,6 +1493,8 @@ def main_reply_keyboard(uid=None):
         rows.append([
             KeyboardButton(MENU_EARN, web_app=WebAppInfo(url=hm)),
         ])
+    else:
+        rows.append([KeyboardButton(MENU_EARN)])
     rows.append([
         KeyboardButton(MENU_QUESTIONS),
     ])
