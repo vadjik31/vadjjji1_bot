@@ -73,14 +73,15 @@ QUESTIONS_HINT = (
 QUESTIONS_STEPS = frozenset({
     "fork", "offer", "lead", "qualified", "qualified_cold",
 })
-PROOFS_BEFORE_CAPTION_SEC = 5.0
-PROOFS_V1_INTRO_PAUSE_SEC = 5.0
-PROOFS_V1_BEFORE_MAIN_SEC = 4.0
+PROOFS_BEFORE_CAPTION_SEC = 10.0
+PROOFS_V1_INTRO_PAUSE_SEC = 10.0
+PROOFS_V1_BEFORE_MAIN_SEC = 10.0
 
 SITE_PAY_ORIGIN = "https://vadjik.com"
 WEBAPP_ENGAGE_SEC = 30
-BONUS_REMIND_HOURS = float(os.getenv("BONUS_REMIND_HOURS", "3.5") or "3.5")
+BONUS_REMIND_HOURS = float(os.getenv("BONUS_REMIND_HOURS", "3") or "3")
 BONUS_REMIND_SEC = max(3600, int(BONUS_REMIND_HOURS * 3600))
+BONUS_REMIND_MAX = int(os.getenv("BONUS_REMIND_MAX", "3") or "3")
 OFFER_STEPS = frozenset({"fork", "offer", "lead", "qualified", "qualified_cold"})
 PAY_TARIFFS = (
     ("💳 Сам — оплатить", "myself"),
@@ -89,7 +90,11 @@ PAY_TARIFFS = (
     ("💳 Под ключ", "vip"),
 )
 
-WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip()
+WEBAPP_URL = (
+    os.getenv("WEBAPP_URL", "").strip()
+    or "https://vadjik31.github.io/apppp/index.html"
+)
+WEBAPP_BUILD = "20260529c"
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -1238,22 +1243,18 @@ async def send_step(bot, uid, text, rows=None, skip_pause=False,
 
 
 # ---------------- ПАУЗЫ МЕЖДУ СООБЩЕНИЯМИ ----------------
-#   после кружка — CIRCLE_PAUSE_SEC
-#   после видео  — доля длины из MEDIA["sec"] (VIDEO_PAUSE_FACTOR), с потолком
-#   между текстами — по длине текста или TEXT_PAUSE_SEC
+#   кружок/видео → текст: MEDIA_TO_TEXT_PAUSE_SEC (40 с)
+#   текст → текст: 5–10 с (по длине)
 # Выключить: PAUSES=0  |  /pauses  |  /fast — без пауз на медиа
 
 PAUSES_ON = os.getenv("PAUSES", "1").strip().lower() not in ("0", "false", "no", "")
-CIRCLE_PAUSE_SEC = float(os.getenv("CIRCLE_PAUSE", "20") or "20")
-VIDEO_PAUSE_FACTOR = float(os.getenv("VIDEO_PAUSE_FACTOR", "0.35") or "0.35")
-VIDEO_PAUSE_MIN = float(os.getenv("VIDEO_PAUSE_MIN", "25") or "25")
-VIDEO_PAUSE_MAX = float(os.getenv("VIDEO_PAUSE_MAX", "150") or "150")
-VIDEO_PAUSE_SEC = float(os.getenv("VIDEO_PAUSE", "90") or "90")
-TEXT_PAUSE_SEC = float(os.getenv("TEXT_PAUSE", "4") or "4")
+CIRCLE_PAUSE_SEC = float(os.getenv("CIRCLE_PAUSE", "40") or "40")
+MEDIA_TO_TEXT_PAUSE_SEC = float(os.getenv("MEDIA_TO_TEXT_PAUSE", "40") or "40")
+TEXT_PAUSE_SEC = float(os.getenv("TEXT_PAUSE", "7") or "7")
 
 READ_WPM = int(os.getenv("READ_WPM", "220") or "220")
-MIN_TEXT_PAUSE = float(os.getenv("MIN_TEXT_PAUSE", "2") or "2")
-MAX_TEXT_PAUSE = float(os.getenv("MAX_TEXT_PAUSE", "18") or "18")
+MIN_TEXT_PAUSE = float(os.getenv("MIN_TEXT_PAUSE", "5") or "5")
+MAX_TEXT_PAUSE = float(os.getenv("MAX_TEXT_PAUSE", "10") or "10")
 
 
 def read_time(text):
@@ -1295,12 +1296,8 @@ def media_sec(key):
 
 
 def video_pause_sec(key=None):
-    """Пауза после видео: ~35% длины ролика (можно не досматривать до конца)."""
-    sec = media_sec(key) if key else 0
-    if sec > 0:
-        t = sec * VIDEO_PAUSE_FACTOR
-        return max(VIDEO_PAUSE_MIN, min(t, VIDEO_PAUSE_MAX))
-    return VIDEO_PAUSE_SEC
+    """Пауза после видео перед текстом — фиксированно 40 с."""
+    return MEDIA_TO_TEXT_PAUSE_SEC
 
 
 async def pause_after_video(bot, chat_id, key=None):
@@ -1366,6 +1363,24 @@ async def refresh_howmany_img_urls(bot):
     log.info("HOWMANY скрины в аппке: %s/4 URL готовы", ok)
 
 
+def _webapp_promo_query(uid):
+    """Параметры активной скидки для URL Mini App (один аккаунт — все устройства)."""
+    if not PROMO_SECRET:
+        return ""
+    rec = u(uid)
+    promo = rec.get("promo") or {}
+    deadline = promo.get("deadline", 0)
+    link = promo.get("link") or ""
+    if deadline <= time.time() or not link:
+        return ""
+    sig = promo_sig(uid, deadline)
+    return (
+        f"&uid={uid}&deadline={deadline}&sig={sig}"
+        f"&disc={PROMO_DISCOUNT}"
+        f"&discount={quote(link, safe='')}"
+    )
+
+
 def webapp_url_full(uid=None):
     """URL Mini App с подставленными ссылками contact/site."""
     if not WEBAPP_URL:
@@ -1373,18 +1388,22 @@ def webapp_url_full(uid=None):
     url = (f"{WEBAPP_URL}?contact={quote(CALL_LINK, safe='')}"
            f"&site={quote(SITE_LINK, safe='')}"
            f"&results={quote(RESULTS_LINK, safe='')}"
-           f"&bot={quote(bot_username_slug())}")
+           f"&bot={quote(bot_username_slug())}"
+           f"&appv={WEBAPP_BUILD}")
     if HOWMANY_URL:
         url += f"&howmany={quote(howmany_webapp_url(), safe='')}"
-    if uid is not None and is_funnel_locked(u(uid)):
-        url += "&locked=1"
+    if uid is not None:
+        if is_funnel_locked(u(uid)):
+            url += "&locked=1"
+        else:
+            url += _webapp_promo_query(uid)
     return url
 
 
-def programs_btn():
+def programs_btn(uid=None):
     """Кнопка Mini App или fallback на текстовый показ программ."""
     if WEBAPP_URL:
-        return (BTN["programs"], webapp_url_full(), "webapp")
+        return (BTN["programs"], webapp_url_full(uid), "webapp")
     return (BTN["programs"], "go_programs", False)
 
 
@@ -1517,7 +1536,7 @@ def fork_inline_rows(uid):
     внизу ещё не раскрылось."""
     rows = []
     if WEBAPP_URL:
-        rows.append([programs_btn()])
+        rows.append([programs_btn(uid)])
     hm = howmany_webapp_url()
     if hm:
         rows.append([(MENU_EARN, hm, "webapp")])
@@ -1614,24 +1633,8 @@ def build_discount_link(uid, deadline):
 
 
 def webapp_promo_url(uid, deadline, discount_link):
-    """URL Mini App с проброшенным дедлайном — чтобы там тикал таймер."""
-    if not WEBAPP_URL:
-        return ""
-    sig = promo_sig(uid, deadline)
-    url = (
-        f"{WEBAPP_URL}?contact={quote(CALL_LINK, safe='')}"
-        f"&site={quote(SITE_LINK, safe='')}"
-        f"&results={quote(RESULTS_LINK, safe='')}"
-        f"&bot={quote(bot_username_slug())}"
-    )
-    if HOWMANY_URL:
-        url += f"&howmany={quote(howmany_webapp_url(), safe='')}"
-    url += (
-        f"&uid={uid}&deadline={deadline}&sig={sig}"
-        f"&disc={PROMO_DISCOUNT}"
-        f"&discount={quote(discount_link, safe='')}"
-    )
-    return url
+    """URL Mini App с активной скидкой (то же, что меню — для inline-кнопки)."""
+    return webapp_url_full(uid)
 
 
 def lead_temperature(answers):
@@ -1958,6 +1961,8 @@ def should_bonus_remind(rec):
         return False
     if rec.get("bonus_claimed"):
         return False
+    if rec.get("bonus_remind_count", 0) >= BONUS_REMIND_MAX:
+        return False
     promo = rec.get("promo") or {}
     return not (promo.get("deadline", 0) > time.time())
 
@@ -1983,6 +1988,8 @@ async def bonus_remind_fire(context: ContextTypes.DEFAULT_TYPE):
     if not should_bonus_remind(rec):
         cancel_bonus_reminds(context.application, uid)
         return
+    rec["bonus_remind_count"] = rec.get("bonus_remind_count", 0) + 1
+    save_state(STATE)
     try:
         await send_with_main_menu(
             context.bot, uid,
@@ -1991,7 +1998,8 @@ async def bonus_remind_fire(context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as e:
         log.error("bonus_remind_fire failed: %s", e)
-    schedule_bonus_remind(context.application, uid)
+    if rec.get("bonus_remind_count", 0) < BONUS_REMIND_MAX:
+        schedule_bonus_remind(context.application, uid)
 
 
 def cancel_promo_jobs(app, uid):
@@ -2075,6 +2083,7 @@ async def show_promo(context, uid, user, temperature):
         "active": True,
     }
     rec["bonus_claimed"] = True
+    rec["bonus_remind_count"] = 0
     save_state(STATE)
     cancel_bonus_reminds(context.application, uid)
     cancel_promo_jobs(context.application, uid)
@@ -2129,7 +2138,8 @@ async def show_promo(context, uid, user, temperature):
     if rec.get("step") in OFFER_STEPS:
         await refresh_main_keyboard(
             bot, uid,
-            "Скидка закреплена — кнопки оплаты ведут на страницы со скидкой 👇",
+            "👇 Снова откройте «Форматы сотрудничества» — цены со скидкой на "
+            f"{PROMO_HOURS} ч",
         )
 
 
@@ -2267,6 +2277,35 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if start_raw == "wa_ready":
         await handle_webapp_ready(context.bot, uid, context.application)
         return
+    if start_raw == "claim_promo":
+        promo = rec.get("promo") or {}
+        if is_funnel_locked(rec) and not is_exempt_user(user):
+            await send_with_main_menu(context.bot, uid, TXT["return_locked"])
+            return
+        if promo.get("deadline", 0) > time.time():
+            await context.bot.send_message(
+                uid,
+                "Скидка уже закреплена — смотрите сообщение с таймером выше 👆",
+            )
+            return
+        if not PROMO_SECRET:
+            await send_step(
+                context.bot, uid,
+                "Скидка пока настраивается. Напишите мне 👇",
+                [(BTN["contact"], CALL_LINK, True)],
+            )
+            return
+        if not rec.get("temperature"):
+            rec["temperature"] = "warm"
+        save_state(STATE)
+        await mark_webapp_opened(context.bot, uid, context.application)
+        await show_promo(context, uid, user, rec.get("temperature", "warm"))
+        await refresh_main_keyboard(
+            context.bot, uid,
+            "👇 Снова нажмите «Форматы сотрудничества» — цены со скидкой на "
+            f"{PROMO_HOURS} ч (на телефоне и ПК)",
+        )
+        return
 
     utm = parse_utm(context.args or [])
     if utm and not rec.get("utm"):
@@ -2323,6 +2362,7 @@ async def go_v1_play(update, context):
     bot = context.bot
     if not await send_media_file(bot, uid, "video_1"):
         return
+    await pause_after_video(bot, uid, "video_1")
     await send_step(bot, uid, TXT["after_v1_video"],
                     [(BTN["v1_proofs"], "go_v1_proofs", False)],
                     skip_pause=True, milestone="after_v1_video")
@@ -2336,6 +2376,7 @@ async def go_v1_proofs(update, context):
     bot = context.bot
     invalidate_active_callbacks(uid)
     intro = TXT["proofs_v1_intro"]
+    await pause_text(bot, uid)
     await bot.send_message(uid, intro)
     if uid not in _replaying_users and not is_funnel_locked(u(uid)):
         push_history(uid, {"t": "text", "body": intro, "rows": None})
@@ -2358,7 +2399,7 @@ async def go_v2_prep(update, context):
     cancel_drips(context.application, uid)
     await send_step(bot, uid, TXT["bridge_v2"],
                     [(BTN["v2_watch"], "go_v2_video", False)],
-                    skip_pause=True, guide_teaser=True,
+                    skip_pause=False, guide_teaser=True,
                     milestone="bridge_v2")
 
 
@@ -2367,6 +2408,7 @@ async def go_v2_video(update, context):
     bot = context.bot
     if not await send_media_file(bot, uid, "video_2"):
         return
+    await pause_after_video(bot, uid, "video_2")
     await send_step(bot, uid, TXT["after_v2_video"],
                     [(BTN["v2_proofs"], "go_v2_proofs", False)],
                     skip_pause=True, milestone="after_v2_video")
@@ -2414,7 +2456,7 @@ async def go_v3_video(update, context):
     cancel_drips(context.application, uid)
     if not await send_media_file(bot, uid, "video_3"):
         return
-    # Кнопку «дальше» сразу под видео — без паузы 2+ мин (иначе кажется, что не сработало)
+    await pause_after_video(bot, uid, "video_3")
     await send_step(bot, uid, TXT["after_v3_video"],
                     [(BTN["to_fork"], "go_v3_after", False)],
                     skip_pause=True, milestone="after_v3_video")
@@ -2427,7 +2469,7 @@ async def go_v3_after(update, context):
     bot = context.bot
     await send_step(bot, uid, TXT["after_v3"],
                     [(BTN["to_fork_how"], "go_fork", False)],
-                    skip_pause=True, guide_teaser=True,
+                    skip_pause=False, guide_teaser=True,
                     milestone="after_v3")
 
 
@@ -2551,6 +2593,7 @@ async def on_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if data != "claim_promo":
         return
+    await mark_webapp_opened(context.bot, uid, context.application)
     user = update.effective_user
     rec = u(uid)
     promo = rec.get("promo") or {}
@@ -2573,6 +2616,11 @@ async def on_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rec["temperature"] = "warm"
     save_state(STATE)
     await show_promo(context, uid, user, rec.get("temperature", "warm"))
+    await refresh_main_keyboard(
+        context.bot, uid,
+        "👇 Снова нажмите «Форматы сотрудничества» — цены со скидкой на "
+        f"{PROMO_HOURS} ч (на телефоне и ПК)",
+    )
 
 
 async def go_lead(update, context):
@@ -2682,15 +2730,13 @@ async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text == MENU_FORMATS:
         set_step(uid, "offer")
         if WEBAPP_URL:
-            await send_with_main_menu(
+            await refresh_main_keyboard(
                 bot, uid,
-                "Нажмите «Форматы сотрудничества и обучения» ещё раз — "
-                "откроется мини-приложение со всеми форматами, инструментами "
-                "и проверками 👇",
-                clear_inline=False,
+                "👇 Меню обновлено — откройте «Форматы сотрудничества и обучения»",
             )
         else:
             await go_programs(update, context)
+        return
 
 
 async def go_guide(update, context):
@@ -3014,6 +3060,53 @@ async def cmd_howmany(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cmd_webappcheck(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Админ: проверить, что на WEBAPP_URL лежит актуальный index.html."""
+    if not is_bot_admin(update.effective_user):
+        return
+    url = webapp_url_full()
+    if not url:
+        await update.message.reply_text("WEBAPP_URL не задан.")
+        return
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "TelegramBot/WebAppCheck"},
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            body = resp.read(12000).decode("utf-8", errors="replace")
+    except Exception as e:
+        await update.message.reply_text(
+            f"❌ Не удалось открыть Mini App:\n{url}\n\n{e}"
+        )
+        return
+    issues = []
+    if "pingBot('webapp_open')" in body or "sendData('webapp_open')" in body:
+        issues.append("⚠️ webapp_open через sendData — аппка сразу закрывается")
+    if "setTimeout(function(){ pingBot('webapp_ready')" in body:
+        issues.append("⚠️ webapp_ready через 30 сек — лишнее")
+    build = "не найдена"
+    m = re.search(r"app-build:([\w]+)", body)
+    if m:
+        build = m.group(1)
+    ok = build == WEBAPP_BUILD and not issues
+    lines = [
+        f"{'✅' if ok else '❌'} Mini App: {WEBAPP_URL}",
+        f"Сборка на сервере: {build}",
+        f"Ожидается: {WEBAPP_BUILD}",
+        f"Размер ответа: {len(body)} байт",
+    ]
+    if issues:
+        lines.append("")
+        lines.extend(issues)
+    if not ok:
+        lines.append(
+            "\nЗалей свежий index.html из Desktop\\ббб на GitHub Pages "
+            "(репо apppp) и подожди 1–2 мин."
+        )
+    await update.message.reply_text("\n".join(lines))
+
+
 async def cmd_pauses(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Паузы только для твоего chat_id — клиенты не затрагиваются."""
     user = update.effective_user
@@ -3027,8 +3120,8 @@ async def cmd_pauses(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not rec["pauses_off"]:
         txt = (
             f"⏳ Паузы для тебя — как у клиентов:\n"
-            f"кружок → {int(CIRCLE_PAUSE_SEC)}с, видео → по длине ролика, "
-            f"текст → 2–18с + «печатает».\n\n"
+            f"кружок → {int(CIRCLE_PAUSE_SEC)}с, видео → {int(MEDIA_TO_TEXT_PAUSE_SEC)}с, "
+            f"текст → {int(MIN_TEXT_PAUSE)}–{int(MAX_TEXT_PAUSE)}с.\n\n"
             f"/pauses — выкл всё для себя · /fast — без пауз только на видео/кружки."
         )
     else:
@@ -3185,6 +3278,7 @@ def main():
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("programs", cmd_programs))
     app.add_handler(CommandHandler("howmany", cmd_howmany))
+    app.add_handler(CommandHandler("webappcheck", cmd_webappcheck))
     app.add_handler(CommandHandler("pauses", cmd_pauses))
     app.add_handler(CommandHandler("fast", cmd_fast))
     app.add_handler(CommandHandler("fastoff", cmd_fastoff))
