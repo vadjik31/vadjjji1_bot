@@ -95,7 +95,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260529d"
+WEBAPP_BUILD = "20260529e"
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -1587,19 +1587,19 @@ def should_show_pay_row(uid):
 
 
 def pay_keyboard_rows(uid):
+    """Одна кнопка на сайт — только если человек уже забрал бонус."""
     if not should_show_pay_row(uid):
         return []
-    rows, row = [], []
-    for label, slug in PAY_TARIFFS:
-        row.append(KeyboardButton(
-            label, api_kwargs={"url": tariff_pay_url(slug, uid)},
-        ))
-        if len(row) == 2:
-            rows.append(row)
-            row = []
-    if row:
-        rows.append(row)
-    return rows
+    if not user_uses_discount_pay(uid):
+        return []
+    rec = u(uid)
+    link = (rec.get("promo") or {}).get("link") or ""
+    if not link:
+        return []
+    return [[KeyboardButton(
+        f"💳 Оформить на сайте (−{PROMO_DISCOUNT}%)",
+        api_kwargs={"url": link},
+    )]]
 
 
 async def refresh_main_keyboard(bot, uid, hint=None):
@@ -2228,20 +2228,24 @@ async def promo_expire(context: ContextTypes.DEFAULT_TYPE):
     await expire_promo(context.bot, uid, rec)
 
 
-async def show_promo(context, uid, user, temperature):
+async def show_promo(context, uid, user, temperature, from_app=False):
     """Выдаёт персональную скидку: ссылка с подписью, закреп, таймер."""
     bot = context.bot
     rec = u(uid)
 
     if not PROMO_SECRET:
-        # секрет не задан — не выдаём кривую ссылку, ведём в личку
         await send_step(bot, uid, TXT["promo_fallback"],
                         [(BTN["contact"], CALL_LINK, True)])
         log.warning("PROMO_SECRET не задан — промо не выдано, отдан контакт")
         return
 
-    deadline = int(time.time()) + PROMO_HOURS * 3600
-    link = build_discount_link(uid, deadline)
+    promo_old = rec.get("promo") or {}
+    if promo_old.get("deadline", 0) > time.time() and promo_old.get("link"):
+        deadline = promo_old["deadline"]
+        link = promo_old["link"]
+    else:
+        deadline = int(time.time()) + PROMO_HOURS * 3600
+        link = build_discount_link(uid, deadline)
 
     rec["promo"] = {
         "issued_at": int(time.time()),
@@ -2256,10 +2260,17 @@ async def show_promo(context, uid, user, temperature):
     cancel_bonus_reminds(context.application, uid)
     cancel_promo_jobs(context.application, uid)
 
-    intro = TXT["promo_hot"] if temperature == "hot" else TXT["promo_warm"]
-    intro = intro.format(hours=PROMO_HOURS, discount=PROMO_DISCOUNT)
+    if from_app:
+        intro = (
+            f"✅ Скидка −{PROMO_DISCOUNT}% закреплена на {PROMO_HOURS} ч.\n\n"
+            f"Снова откройте «{MENU_FORMATS}» — в приложении уже цены "
+            f"«было → стало» и тот же таймер, что на сайте.\n\n"
+            f"На сайте выбираете формат сами 👇"
+        )
+    else:
+        intro = TXT["promo_hot"] if temperature == "hot" else TXT["promo_warm"]
+        intro = intro.format(hours=PROMO_HOURS, discount=PROMO_DISCOUNT)
 
-    # кнопки: оформить со скидкой, программы со скидкой (Mini App), контакт
     rows = [(BTN["promo_get"], link, True)]
     if WEBAPP_URL:
         rows.append((BTN["promo_app"], webapp_promo_url(uid, deadline, link), "webapp"))
@@ -2304,11 +2315,11 @@ async def show_promo(context, uid, user, temperature):
     )
 
     if rec.get("step") in OFFER_STEPS:
-        await refresh_main_keyboard(
-            bot, uid,
-            "👇 Снова откройте «Форматы сотрудничества» — цены со скидкой на "
-            f"{PROMO_HOURS} ч",
+        hint = (
+            f"👇 Снова «{MENU_FORMATS}» — цены со скидкой и таймер "
+            f"(синхрон с сайтом, {PROMO_HOURS} ч)"
         )
+        await refresh_main_keyboard(bot, uid, hint)
 
 
 async def promo_tick(context: ContextTypes.DEFAULT_TYPE):
@@ -2495,12 +2506,8 @@ async def _cmd_start_impl(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rec["temperature"] = "warm"
         save_state(STATE)
         await mark_webapp_opened(context.bot, uid, context.application)
-        await show_promo(context, uid, user, rec.get("temperature", "warm"))
-        await refresh_main_keyboard(
-            context.bot, uid,
-            "👇 Снова нажмите «Форматы сотрудничества» — цены со скидкой на "
-            f"{PROMO_HOURS} ч (на телефоне и ПК)",
-        )
+        await show_promo(context, uid, user, rec.get("temperature", "warm"),
+                         from_app=True)
         return
 
     utm = parse_utm(context.args or [])
@@ -2911,12 +2918,8 @@ async def on_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not rec.get("temperature"):
         rec["temperature"] = "warm"
     save_state(STATE)
-    await show_promo(context, uid, user, rec.get("temperature", "warm"))
-    await refresh_main_keyboard(
-        context.bot, uid,
-        "👇 Снова нажмите «Форматы сотрудничества» — цены со скидкой на "
-        f"{PROMO_HOURS} ч (на телефоне и ПК)",
-    )
+    await show_promo(context, uid, user, rec.get("temperature", "warm"),
+                     from_app=True)
 
 
 async def go_lead(update, context):
