@@ -95,7 +95,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260529e"
+WEBAPP_BUILD = "20260529f"
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -1784,6 +1784,11 @@ def promo_sig(uid, deadline):
                     hashlib.sha256).hexdigest()
 
 
+def promo_is_active(rec):
+    promo = rec.get("promo") or {}
+    return bool(promo.get("active") and promo.get("deadline", 0) > time.time())
+
+
 def build_discount_link(uid, deadline):
     """Подписанная ссылка на скидочную страницу сайта."""
     sig = promo_sig(uid, deadline)
@@ -2087,9 +2092,10 @@ async def lm_check(update, context):
     rec = u(uid)
     rec["got_guide"] = True
     save_state(STATE)
-    await send_step(bot, uid, TXT["lm_delivered"],
-                    [(BTN["to_lead"], "go_lead", False)],
-                    questions_hint=True)
+    rows = [(BTN["contact"], CALL_LINK, True)]
+    if not promo_is_active(rec):
+        rows.insert(0, (BTN["to_lead"], "go_lead", False))
+    await send_step(bot, uid, TXT["lm_delivered"], rows, questions_hint=True)
 
 
 async def send_guide(bot, chat_id):
@@ -2239,13 +2245,22 @@ async def show_promo(context, uid, user, temperature, from_app=False):
         log.warning("PROMO_SECRET не задан — промо не выдано, отдан контакт")
         return
 
-    promo_old = rec.get("promo") or {}
-    if promo_old.get("deadline", 0) > time.time() and promo_old.get("link"):
-        deadline = promo_old["deadline"]
-        link = promo_old["link"]
-    else:
-        deadline = int(time.time()) + PROMO_HOURS * 3600
-        link = build_discount_link(uid, deadline)
+    if promo_is_active(rec):
+        left = fmt_left(rec["promo"]["deadline"])
+        if from_app:
+            await refresh_main_keyboard(
+                bot, uid,
+                f"👇 «{MENU_FORMATS}» — цены со скидкой ({left})",
+            )
+        else:
+            await bot.send_message(
+                uid,
+                f"Скидка уже закреплена — осталось {left} 👆",
+            )
+        return
+
+    deadline = int(time.time()) + PROMO_HOURS * 3600
+    link = build_discount_link(uid, deadline)
 
     rec["promo"] = {
         "issued_at": int(time.time()),
@@ -2263,8 +2278,8 @@ async def show_promo(context, uid, user, temperature, from_app=False):
     if from_app:
         intro = (
             f"✅ Скидка −{PROMO_DISCOUNT}% закреплена на {PROMO_HOURS} ч.\n\n"
-            f"Снова откройте «{MENU_FORMATS}» — в приложении уже цены "
-            f"«было → стало» и тот же таймер, что на сайте.\n\n"
+            f"Снова откройте «{MENU_FORMATS}» — в приложении цены "
+            f"«было → стало».\n\n"
             f"На сайте выбираете формат сами 👇"
         )
     else:
@@ -2315,11 +2330,10 @@ async def show_promo(context, uid, user, temperature, from_app=False):
     )
 
     if rec.get("step") in OFFER_STEPS:
-        hint = (
-            f"👇 Снова «{MENU_FORMATS}» — цены со скидкой и таймер "
-            f"(синхрон с сайтом, {PROMO_HOURS} ч)"
+        await refresh_main_keyboard(
+            bot, uid,
+            f"👇 «{MENU_FORMATS}» — цены со скидкой на {PROMO_HOURS} ч",
         )
-        await refresh_main_keyboard(bot, uid, hint)
 
 
 async def promo_tick(context: ContextTypes.DEFAULT_TYPE):
@@ -2932,6 +2946,12 @@ async def go_lead(update, context):
     if is_funnel_locked(rec) and not is_exempt_user(user):
         await send_with_main_menu(bot, uid, TXT["return_locked"])
         return
+    if promo_is_active(rec) and rec.get("bonus_claimed"):
+        await send_with_main_menu(
+            bot, uid,
+            f"Скидка уже закреплена — осталось {fmt_left(rec['promo']['deadline'])} 👆",
+        )
+        return
     rec["full_name"] = user.full_name
     rec["username"] = user.username or ""
     rec["temperature"] = "warm"
@@ -3023,6 +3043,15 @@ async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     if text == MENU_GUIDE:
+        rec = u(uid)
+        if rec.get("got_guide"):
+            await send_guide(bot, uid)
+            await send_with_main_menu(
+                bot, uid,
+                "Гайд уже у вас — отправил ещё раз 👇",
+                clear_inline=False, skip_questions_hint=True,
+            )
+            return
         set_step(uid, "offer")
         await show_lead_magnet_offer(bot, uid)
         return
@@ -3042,6 +3071,14 @@ async def go_guide(update, context):
     """Человек нажал «Забрать гайд» — показываем лид-магнит (подписка → гайд)."""
     uid = update.effective_user.id
     bot = context.bot
+    rec = u(uid)
+    if rec.get("got_guide"):
+        await send_guide(bot, uid)
+        await send_with_main_menu(
+            bot, uid,
+            "Гайд уже у вас — отправил ещё раз 👇",
+        )
+        return
     set_step(uid, "offer")
     await show_lead_magnet_offer(bot, uid)
 
