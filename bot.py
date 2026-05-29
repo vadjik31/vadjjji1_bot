@@ -64,6 +64,15 @@ MENU_RESULTS = "📈 Результаты учеников"
 MENU_GUIDE = "📘 Забрать гайд"
 MENU_ABOUT = "👤 Обо мне"
 MENU_EARN = "💸 Сколько заработать"
+MENU_QUESTIONS = "💬 У меня есть вопросы"
+
+QUESTIONS_HINT = (
+    "\n\n💬 Есть вопросы — нажмите «У меня есть вопросы» в меню внизу."
+)
+QUESTIONS_STEPS = frozenset({
+    "fork", "offer", "lead", "qualified", "qualified_cold",
+})
+PROOFS_BEFORE_CAPTION_SEC = 5.0
 
 SITE_PAY_ORIGIN = "https://vadjik.com"
 WEBAPP_ENGAGE_SEC = 30
@@ -271,7 +280,10 @@ TXT = {
         "📦 закупка → 🏷 подготовка → 🚚 отправка на Amazon → "
         "💵 продажи → ✅ чистая прибыль.\n\n"
         "Так и выглядит нормальный путь: не угадал, а проверил, "
-        "исправил и получил результат."
+        "исправил и получил результат.\n\n"
+        "Готовы к следующему шагу? 👇\n\n"
+        "Покажу, откуда вообще берётся прибыль на Amazon — простыми "
+        "словами."
     ),
     "after_v1": (
         "💡 Смысл не в том, что Игорь сразу всё понял.\n\n"
@@ -307,30 +319,31 @@ TXT = {
         "3️⃣ после всех расходов остаётся прибыль.\n\n"
         "🔄 Когда такой товар найден, дальше начинается понятный цикл:\n\n"
         "купили → подготовили → отправили → продали → часть денег снова "
-        "вложили в товар."
+        "вложили в товар.\n\n"
+        "▶️ Готов к следующему видео?"
     ),
     "after_v2": (
         "Теперь вы понимаете, как это работает 🙂\n\n"
         "⚠️ Но есть важный момент: даже когда человек понимает схему, он "
         "часто всё равно не начинает.\n\n"
-        "💭 Обычно мешают одни и те же страхи:\n\n"
+        "💭 Обычно мешают одни и те же причины:\n\n"
         "💸 «нет денег»\n"
         "⏰ «нет времени»\n"
         "🗣 «я не знаю язык»\n"
         "🔒 «а вдруг заблокируют»\n"
         "⌛ «уже поздно заходить»\n"
         "📦 «там слишком много конкурентов»\n\n"
-        "▶️ Дальше — честный разбор этих причин (~7 мин). Нажмите кнопку — "
-        "видео сразу откроется 👇"
+        "▶️ Дальше — честный разбор: почему люди откладывают старт и "
+        "как с этим быть (~7 мин). Нажмите кнопку 👇"
     ),
     "v3_loading": (
-        "▶️ Загружаю разбор страхов (~7 мин).\n\n"
-        "Подождите несколько секунд — видео появится следующим сообщением."
+        "▶️ Загружаю видео «Почему не начинают» (~7 мин).\n\n"
+        "Подождите несколько секунд — ролик появится следующим сообщением."
     ),
     "after_v3_video": (
         "Досмотрели? 👇\n\n"
         "🎯 Если дошли до конца — у вас уже есть база: путь Игоря, схема "
-        "и честный разбор страхов."
+        "и разбор причин, почему люди не начинают."
     ),
     "after_v3": (
         "Дальше — как пройти этот путь без хаоса и лишних ошибок 👇"
@@ -339,11 +352,6 @@ TXT = {
         "Готовы к следующему шагу? 👇\n\n"
         "Покажу, откуда вообще берётся прибыль на Amazon — простыми "
         "словами."
-    ),
-    "after_v2_proofs": (
-        "Видели примеры по странам? 👇\n\n"
-        "Дальше — честный разбор: почему люди понимают схему, но не "
-        "начинают."
     ),
     "after_fork_circle": (
         "👀 Смотрите.\n\n"
@@ -357,6 +365,7 @@ TXT = {
         "✅ Поэтому я сделал формат, где можно идти по шагам, с проверками "
         "и поддержкой.\n\n"
         "📋 Разделы — в меню внизу 👇\n\n"
+        "💸 Калькулятор «Сколько заработать» — там же.\n\n"
         "🔥 Кстати, зайдите в «Форматы сотрудничества и обучения» — "
         "для вас там супер-бонус!"
     ),
@@ -366,7 +375,8 @@ TXT = {
         "• 💸 сколько заработать — калькулятор\n"
         "• 📈 результаты учеников — сайт\n"
         "• 📘 PDF-гайд — бесплатно\n"
-        "• 👤 обо мне — статья в Telegraph"
+        "• 👤 обо мне — статья в Telegraph\n"
+        "• 💬 у меня есть вопросы — напишите мне"
     ),
     "menu_results": (
         "Результаты учеников — на сайте, со скринами и цифрами 👇"
@@ -460,7 +470,8 @@ TXT = {
         "Готово, держите гайд 🎁\n\n"
         "Прочитайте перед первой закупкой — он может сэкономить вам "
         "деньги и нервы.\n\n"
-        "Если захотите разобрать вашу ситуацию — нажмите кнопку ниже 👇"
+        "Если захотите разобрать вашу ситуацию — нажмите кнопку ниже "
+        "или «У меня есть вопросы» в меню 👇"
     ),
     "lm_skip": (
         "Без проблем 🙂\n\n"
@@ -546,9 +557,9 @@ BTN = {
     "to_v2":      "⚙️ Дальше — как работает схема",
     "v2_watch":   "▶️ Смотреть схему по шагам (~6 мин)",
     "v2_proofs":  "🌍 Примеры по странам",
-    "v2_next":    "➡️ Дальше — к разбору страхов",
-    "to_v3":      "🙅 Смотреть разбор страхов (~7 мин)",
-    "v3_watch":   "▶️ Смотреть разбор страхов (~7 мин)",
+    "v3_yes":     "✅ Да",
+    "v3_watch":   "▶️ Смотреть: почему не начинают (~7 мин)",
+    "to_v3":      "▶️ Почему не начинают (~7 мин)",
     "to_fork":    "➡️ Дальше",
     "students":   "Результаты учеников",
     "programs":   "💎 Открыть мини-приложение",
@@ -669,9 +680,9 @@ MILESTONE_LABELS = {
     "after_v2_video": "1-е сообщение после видео 2",
     "proofs_v2": "Скрины после видео 2",
     "proofs_v2_caption": "2-е сообщение после видео 2",
-    "after_v2": "3-е сообщение после видео 2 — к страхам",
+    "after_v2": "3-е сообщение после видео 2 — почему не начинают",
     "v3_loading": "Загрузка видео 3",
-    "video_3": "Видео 3 — разбор страхов",
+    "video_3": "Видео 3 — почему не начинают",
     "after_v3_video": "1-е сообщение после видео 3",
     "after_v3": "2-е сообщение после видео 3",
     "circle_fork": "2-й кружок — развилка",
@@ -1062,7 +1073,12 @@ async def _emit_history_item(bot, uid, item, with_buttons=False):
     if kind == "text":
         rows = _deserialize_rows(item.get("rows")) if with_buttons else None
         markup = kb(rows) if rows else None
-        await bot.send_message(uid, item["body"], reply_markup=markup)
+        msg = await bot.send_message(uid, item["body"], reply_markup=markup)
+        if with_buttons and rows:
+            rec = u(uid)
+            rec["last_kb_msg"] = msg.message_id
+            set_active_callbacks(uid, rows)
+            save_state(STATE)
     elif kind == "circle":
         await send_circle(bot, uid, item["k"], log=False)
     elif kind == "video":
@@ -1111,6 +1127,41 @@ def kb(rows):
     return InlineKeyboardMarkup(buttons)
 
 
+def append_questions_hint(uid, text):
+    if u(uid).get("step") in QUESTIONS_STEPS:
+        return text + QUESTIONS_HINT
+    return text
+
+
+def callback_ids_from_rows(rows):
+    """Callback_data из inline-кнопок (только callback, не url/webapp)."""
+    if not rows:
+        return []
+    out = []
+    for row in rows:
+        items = [row] if (
+            isinstance(row, (list, tuple))
+            and len(row) == 3
+            and isinstance(row[0], str)
+        ) else row
+        for t, d, k in items:
+            if k is False:
+                out.append(d)
+    return out
+
+
+def invalidate_active_callbacks(uid):
+    rec = u(uid)
+    rec["active_callbacks"] = []
+    save_state(STATE)
+
+
+def set_active_callbacks(uid, rows):
+    rec = u(uid)
+    rec["active_callbacks"] = callback_ids_from_rows(rows)
+    save_state(STATE)
+
+
 def append_guide_teaser(uid, text):
     """Добавляет напоминание о PDF-гайде (до 5 раз на пользователя)."""
     rec = u(uid)
@@ -1128,30 +1179,26 @@ def append_guide_teaser(uid, text):
 
 
 async def send_step(bot, uid, text, rows=None, skip_pause=False,
-                    guide_teaser=False, milestone=None, **kwargs):
-    """Отправляет сообщение и гарантирует, что активные кнопки есть только
-    у ПОСЛЕДНЕГО сообщения. Перед отправкой снимает кнопки с предыдущего
-    сообщения, у которого они были, — чтобы из истории нельзя было
-    наклацать старых кнопок и сбить воронку."""
+                    guide_teaser=False, questions_hint=False,
+                    milestone=None, **kwargs):
+    """Отправляет сообщение. Кнопки старых сообщений остаются на экране,
+    но работает только последний набор callback-кнопок."""
     if guide_teaser:
         text = append_guide_teaser(uid, text)
+    if questions_hint or u(uid).get("step") in QUESTIONS_STEPS:
+        text = append_questions_hint(uid, text)
     if milestone:
         track_milestone(uid, milestone)
     rec = u(uid)
-    prev_id = rec.get("last_kb_msg")
-    if prev_id:
-        try:
-            await bot.edit_message_reply_markup(uid, prev_id, reply_markup=None)
-        except Exception:
-            pass
-        rec["last_kb_msg"] = None
+    invalidate_active_callbacks(uid)
     markup = kb(rows) if rows else None
     if not skip_pause:
         await pause_text(bot, uid)
     msg = await bot.send_message(uid, text, reply_markup=markup, **kwargs)
     if rows:
         rec["last_kb_msg"] = msg.message_id
-        save_state(STATE)
+        set_active_callbacks(uid, rows)
+    save_state(STATE)
     if uid not in _replaying_users and not is_funnel_locked(rec):
         push_history(uid, {
             "t": "text",
@@ -1381,13 +1428,14 @@ def main_reply_keyboard(uid=None):
     else:
         rows.append([KeyboardButton(MENU_FORMATS)])
     rows.append([KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)])
+    rows.append([KeyboardButton(MENU_ABOUT)])
     if hm:
         rows.append([
-            KeyboardButton(MENU_ABOUT),
             KeyboardButton(MENU_EARN, web_app=WebAppInfo(url=hm)),
         ])
-    else:
-        rows.append([KeyboardButton(MENU_ABOUT)])
+    rows.append([
+        KeyboardButton(MENU_QUESTIONS, api_kwargs={"url": CALL_LINK}),
+    ])
     if uid is not None:
         rows.extend(pay_keyboard_rows(uid))
     return ReplyKeyboardMarkup(
@@ -1395,8 +1443,9 @@ def main_reply_keyboard(uid=None):
     )
 
 
-async def send_with_main_menu(bot, chat_id, text, clear_inline=True):
-    """Текст + нижнее меню (без inline-кнопок в этом сообщении)."""
+async def send_with_main_menu(bot, chat_id, text, clear_inline=False):
+    """Текст + нижнее меню. Inline-кнопки прошлых сообщений не снимаем."""
+    invalidate_active_callbacks(chat_id)
     if clear_inline:
         rec = u(chat_id)
         prev_id = rec.get("last_kb_msg")
@@ -1407,6 +1456,7 @@ async def send_with_main_menu(bot, chat_id, text, clear_inline=True):
             except Exception:
                 pass
             rec["last_kb_msg"] = None
+    text = append_questions_hint(chat_id, text)
     await pause_text(bot, chat_id, text=text)
     msg = await bot.send_message(
         chat_id, text, reply_markup=main_reply_keyboard(chat_id),
@@ -1609,6 +1659,8 @@ def _resolve_photo_source(item):
 async def send_proofs(bot, chat_id, proofs, caption=None, log=True,
                       proofs_key=None, caption_key=None):
     """Фото по URL/file_id. Если у элемента есть caption — шлём по одному."""
+    if log:
+        invalidate_active_callbacks(chat_id)
     items = [p for p in proofs if _resolve_photo_source(p)]
     if not items:
         if caption:
@@ -1733,7 +1785,9 @@ async def lm_check(update, context):
     rec = u(uid)
     rec["got_guide"] = True
     save_state(STATE)
-    await send_step(bot, uid, TXT["lm_delivered"], [(BTN["to_lead"], "go_lead", False)])
+    await send_step(bot, uid, TXT["lm_delivered"],
+                    [(BTN["to_lead"], "go_lead", False)],
+                    questions_hint=True)
 
 
 async def send_guide(bot, chat_id):
@@ -1852,7 +1906,7 @@ async def show_promo(context, uid, user, temperature):
         rows.append((BTN["promo_app"], webapp_promo_url(uid, deadline, link), "webapp"))
     rows.append((BTN["contact"], CALL_LINK, True))
 
-    promo_msg = await send_step(bot, uid, intro, rows)
+    promo_msg = await send_step(bot, uid, intro, rows, questions_hint=True)
     rec["promo"]["main_msg_id"] = promo_msg.message_id
     save_state(STATE)
 
@@ -2038,11 +2092,13 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if is_exempt_user(user):
         rec["last_kb_msg"] = None
+        rec["active_callbacks"] = []
         await _funnel_start_fresh(context.bot, uid)
         return
 
     if is_funnel_locked(rec):
         rec["last_kb_msg"] = None
+        rec["active_callbacks"] = []
         track_milestone(uid, "return_locked")
         await send_with_main_menu(context.bot, uid, TXT["return_locked"])
         return
@@ -2050,11 +2106,13 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     hist = rec.get("history") or []
     if hist and rec.get("milestone") and rec.get("milestone") != "start":
         rec["last_kb_msg"] = None
+        rec["active_callbacks"] = []
         await context.bot.send_message(uid, TXT["resume_hi"])
         await replay_user_history(context.bot, uid)
         return
 
     rec["last_kb_msg"] = None
+    rec["active_callbacks"] = []
     await _funnel_start_fresh(context.bot, uid)
 
 
@@ -2090,15 +2148,16 @@ async def go_v1_play(update, context):
 
 
 async def go_v1_proofs(update, context):
-    """Скрины после видео 1 → мост к видео 2."""
+    """Скрины после видео 1 → один текст + кнопка к видео 2."""
     uid = update.effective_user.id
     bot = context.bot
-    await send_proofs(bot, uid, PROOFS_AFTER_V1, TXT["proofs_v1_caption"],
-                      proofs_key="v1", caption_key="proofs_v1_caption")
-    await send_step(bot, uid, TXT["after_v1_proofs"],
-                    [(BTN["to_v2"], "go_v2_prep", False)],
-                    skip_pause=True, guide_teaser=True,
-                    milestone="after_v1_proofs")
+    await send_proofs(bot, uid, PROOFS_AFTER_V1, proofs_key="v1")
+    await send_step(
+        bot, uid, TXT["proofs_v1_caption"],
+        [(BTN["to_v2"], "go_v2_prep", False)],
+        skip_pause=False, guide_teaser=True,
+        milestone="after_v1_proofs",
+    )
 
 
 async def go_v2_prep(update, context):
@@ -2126,19 +2185,30 @@ async def go_v2_proofs(update, context):
     uid = update.effective_user.id
     bot = context.bot
     await send_proofs(bot, uid, PROOFS_AFTER_V2, proofs_key="proofs_v2")
-    await send_step(bot, uid, TXT["proofs_v2_caption"],
-                    [(BTN["v2_next"], "go_v2_bridge", False)],
-                    skip_pause=True, guide_teaser=True,
-                    milestone="proofs_v2_caption")
+    if PAUSES_ON and not user_fast_mode(uid):
+        await asyncio.sleep(PROOFS_BEFORE_CAPTION_SEC)
+    await send_step(
+        bot, uid, TXT["proofs_v2_caption"],
+        [(BTN["v3_yes"], "go_v3_confirm", False)],
+        skip_pause=False, guide_teaser=True,
+        milestone="proofs_v2_caption",
+    )
+
+
+async def go_v3_confirm(update, context):
+    """После «Готов?» — текст про причины + кнопка на видео 3."""
+    uid = update.effective_user.id
+    bot = context.bot
+    await send_step(
+        bot, uid, TXT["after_v2"],
+        [(BTN["v3_watch"], "go_v3_video", False)],
+        skip_pause=False, milestone="after_v2",
+    )
 
 
 async def go_v2_bridge(update, context):
-    """Мост к видео 3 — одна кнопка, сразу ролик."""
-    uid = update.effective_user.id
-    bot = context.bot
-    await send_step(bot, uid, TXT["after_v2"],
-                    [(BTN["v3_watch"], "go_v3_video", False)],
-                    skip_pause=True, milestone="after_v2")
+    """Старые кнопки в истории → новый шаг."""
+    await go_v3_confirm(update, context)
 
 
 async def go_v3_prep(update, context):
@@ -2178,9 +2248,9 @@ async def go_fork(update, context):
     if not await send_circle(bot, uid, "circle_fork"):
         return
     await pause_after_circle(bot, uid)
+    set_step(uid, "offer")
     await send_with_main_menu(bot, uid, TXT["after_fork_circle"])
     track_milestone(uid, "after_fork")
-    set_step(uid, "offer")
     schedule_drip(context.application, uid, "after_offer",
                   DRIP_HOURS["after_offer"])
 
@@ -2418,17 +2488,15 @@ async def go_guide(update, context):
 async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     d = q.data
+    uid = update.effective_user.id
     if d in ("go_v1_play", "go_v2_video", "go_v3_video", "go_v3_prep"):
         await q.answer("Загружаю видео…", show_alert=False)
     else:
         await q.answer()
-    # Убираем кнопки с этого сообщения, чтобы их нельзя было нажать
-    # повторно из истории чата (кроме админских кнопок статуса лида).
     if not d.startswith("mk_"):
-        try:
-            await q.edit_message_reply_markup(reply_markup=None)
-        except Exception:
-            pass
+        active = u(uid).get("active_callbacks") or []
+        if active and d not in active:
+            return
     routes = {
         "go_intro":         go_intro,
         "go_v1_prep":       go_v1_prep,
@@ -2438,6 +2506,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "go_v2_video":      go_v2_video,
         "go_v2_proofs":     go_v2_proofs,
         "go_v2_bridge":     go_v2_bridge,
+        "go_v3_confirm":    go_v3_confirm,
         "go_v3_prep":       go_v3_prep,
         "go_v3_video":      go_v3_video,
         "go_v3_after":      go_v3_after,
