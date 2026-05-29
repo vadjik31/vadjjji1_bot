@@ -15,6 +15,7 @@ import hmac
 import json
 import logging
 import os
+import threading
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta, time as dt_time
@@ -26,7 +27,7 @@ from telegram import (
     KeyboardButton, ReplyKeyboardMarkup, WebAppInfo,
 )
 from telegram.constants import ChatAction
-from telegram.error import BadRequest
+from telegram.error import BadRequest, TimedOut
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, ContextTypes, filters,
@@ -631,27 +632,78 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.getenv("DATA_DIR", BASE_DIR)
 os.makedirs(DATA_DIR, exist_ok=True)
 STATE_FILE = os.path.join(DATA_DIR, "users.json")
+STATE_BACKUP = STATE_FILE + ".bak"
 GUIDE_PATH = os.path.join(BASE_DIR, GUIDE_FILENAME)
 
 CHANNEL_LINK = "https://t.me/" + CHANNEL_USERNAME.lstrip("@")
 
+_state_io_lock = threading.Lock()
+_state_dirty = False
+_user_locks = defaultdict(asyncio.Lock)
+
 
 def load_state():
-    if os.path.exists(STATE_FILE):
+    for path in (STATE_FILE, STATE_BACKUP):
+        if not os.path.exists(path):
+            continue
         try:
-            with open(STATE_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if path != STATE_FILE:
+                log.warning("users.json повреждён — восстановлен из .bak")
+            return data
+        except Exception as e:
+            log.error("load_state %s failed: %s", path, e)
     return {}
 
 
+def _flush_state_to_disk():
+    """Атомарная запись на диск (вызывается из фонового потока)."""
+    with _state_io_lock:
+        try:
+            tmp = STATE_FILE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(STATE, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, STATE_FILE)
+            try:
+                with open(STATE_BACKUP, "w", encoding="utf-8") as f:
+                    json.dump(STATE, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+        except Exception as e:
+            log.error("save_state failed: %s", e)
+            raise
+
+
 def save_state(state):
-    try:
-        with open(STATE_FILE, "w", encoding="utf-8") as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        log.error("save_state failed: %s", e)
+    """Пометить state «грязным» — запись на диск в фоне, без блокировки бота."""
+    global _state_dirty
+    _state_dirty = True
+
+
+async def _state_flush_loop():
+    """Периодически сливает STATE на диск в отдельном потоке."""
+    global _state_dirty
+    while True:
+        await asyncio.sleep(0.08)
+        if not _state_dirty:
+            continue
+        while _state_dirty:
+            _state_dirty = False
+            try:
+                await asyncio.to_thread(_flush_state_to_disk)
+            except Exception:
+                _state_dirty = True
+                await asyncio.sleep(0.5)
+
+
+async def flush_state_now():
+    """Немедленно сохранить (перед выключением)."""
+    global _state_dirty
+    if not _state_dirty:
+        return
+    _state_dirty = False
+    await asyncio.to_thread(_flush_state_to_disk)
 
 
 STATE = load_state()
@@ -1311,6 +1363,64 @@ async def pause_after_video(bot, chat_id, key=None):
     await asyncio.sleep(video_pause_sec(key))
 
 
+def funnel_pause_sec(uid, default_sec):
+    """Длительность паузы воронки для пользователя (0 ≈ сразу при /fast)."""
+    if not pauses_enabled_for(uid) or user_fast_mode(uid):
+        return 0.05
+    return default_sec
+
+
+def cancel_funnel_pause_jobs(app, uid):
+    """Отменить отложенные шаги воронки (не трогает drip/промо)."""
+    if not app or not app.job_queue:
+        return
+    prefix = f"funnel_{uid}_pause_"
+    for job in app.job_queue.jobs():
+        if job.name and job.name.startswith(prefix):
+            job.schedule_removal()
+
+
+def schedule_funnel_pause(app, uid, delay_sec, callback, tag, extra=None):
+    """Отложить следующий шаг воронки — обработчик кнопки освобождается сразу."""
+    if not app or not app.job_queue:
+        log.warning("job_queue недоступен — пауза %ss для uid=%s inline", delay_sec, uid)
+        return
+    cancel_funnel_pause_jobs(app, uid)
+    app.job_queue.run_once(
+        callback,
+        when=max(0.05, delay_sec),
+        name=f"funnel_{uid}_pause_{tag}",
+        data={"uid": uid, **(extra or {})},
+    )
+
+
+async def safe_answer_callback(q, data=""):
+    """Ответ на inline-кнопку — не падаем, если запрос уже протух."""
+    try:
+        if data == "go_intro":
+            await q.answer("Загружаю приветствие…", show_alert=False)
+        elif data in ("go_v1_play", "go_v2_video", "go_v3_video", "go_v3_prep"):
+            await q.answer("Загружаю видео…", show_alert=False)
+        else:
+            await q.answer()
+    except BadRequest as e:
+        msg = str(e).lower()
+        if "too old" in msg or "query id is invalid" in msg:
+            log.debug("callback протух (старая кнопка или бот долго не отвечал): %s", data)
+        else:
+            log.warning("callback answer: %s", e)
+    except TimedOut:
+        log.debug("callback answer timeout: %s", data)
+
+
+async def run_funnel_step(handler, update, context):
+    """Шаг воронки в фоне — не блокирует других пользователей."""
+    try:
+        await handler(update, context)
+    except Exception:
+        log.exception("funnel step %s failed", getattr(handler, "__name__", handler))
+
+
 async def send_text(bot, chat_id, text, **kwargs):
     """Текстовое сообщение с паузой по длине ТЕКСТА — больше текст,
     дольше пауза, чтобы человек успел прочитать предыдущее сообщение."""
@@ -1503,7 +1613,7 @@ async def handle_webapp_ready(bot, uid, app=None):
 async def activate_bonus(update, context):
     """Активировать бонус после 30 с в аппке — как claim_promo в Mini App."""
     q = update.callback_query
-    await q.answer()
+    asyncio.create_task(safe_answer_callback(q, "activate_bonus"))
     uid = update.effective_user.id
     user = update.effective_user
     rec = u(uid)
@@ -1672,7 +1782,7 @@ def detect_kind(file_id: str) -> str:
 
 
 async def probe_file_id(bot, file_id):
-    """Проверка file_id без отправки 500 МБ в чат. Возвращает (ok, описание)."""
+    """Проверка file_id. «Too big» для getFile — норма: send_video по file_id работает."""
     if not file_id:
         return False, "пустой file_id"
     try:
@@ -1680,6 +1790,9 @@ async def probe_file_id(bot, file_id):
         mb = (f.file_size or 0) / (1024 * 1024)
         return True, f"ok, ~{mb:.0f} МБ"
     except BadRequest as e:
+        err = str(e).lower()
+        if "too big" in err or "file is too large" in err:
+            return True, "ok (getFile недоступен — отправка по file_id)"
         return False, str(e)
     except Exception as e:
         return False, str(e)
@@ -2253,22 +2366,50 @@ async def drip_fire(context: ContextTypes.DEFAULT_TYPE):
 # ---------------- ШАГИ ВОРОНКИ ----------------
 
 async def _funnel_start_fresh(bot, uid):
-    set_step(uid, "start")
-    await send_step(
-        bot, uid, TXT["start"],
-        [(BTN["start"], "go_intro", False)],
-        skip_pause=True, milestone="start",
-    )
+    """Приветствие /start — одно сохранение, без пауз, сразу «печатает»."""
+    rec = u(uid)
+    rec["step"] = "start"
+    rec["step_at"] = _now()
+    rows = [(BTN["start"], "go_intro", False)]
+    markup = kb(rows)
+    try:
+        await bot.send_chat_action(uid, ChatAction.TYPING)
+    except Exception:
+        pass
+    msg = await bot.send_message(uid, TXT["start"], reply_markup=markup)
+    rec["last_kb_msg"] = msg.message_id
+    rec["active_callbacks"] = callback_ids_from_rows(rows)
+    if uid not in _replaying_users:
+        rec["milestone"] = "start"
+        rec["milestone_label"] = MILESTONE_LABELS.get("start", "start")
+        rec["milestone_at"] = _now()
+        if not is_funnel_locked(rec):
+            hist = rec.setdefault("history", [])
+            hist.append({
+                "t": "text",
+                "body": TXT["start"],
+                "rows": _serialize_rows(rows),
+                "_ts": _now(),
+            })
+            if len(hist) > 50:
+                del hist[0]
+    save_state(STATE)
 
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    uid = user.id
+    async with _user_locks[str(uid)]:
+        await _cmd_start_impl(update, context)
+
+
+async def _cmd_start_impl(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     uid = user.id
     cancel_drips(context.application, uid)
     rec = u(uid)
     rec["username"] = user.username or rec.get("username", "")
     rec["full_name"] = user.full_name or rec.get("full_name", "")
-    save_state(STATE)
 
     start_raw = ((context.args or [""])[0] or "").strip().lower()
     if start_raw == "wa_open":
@@ -2310,7 +2451,6 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     utm = parse_utm(context.args or [])
     if utm and not rec.get("utm"):
         rec["utm"] = utm
-        save_state(STATE)
 
     if is_exempt_user(user):
         rec["last_kb_msg"] = None
@@ -2322,6 +2462,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rec["last_kb_msg"] = None
         rec["active_callbacks"] = []
         track_milestone(uid, "return_locked")
+        save_state(STATE)
         await send_with_main_menu(context.bot, uid, TXT["return_locked"])
         return
 
@@ -2329,6 +2470,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if hist and rec.get("milestone") and rec.get("milestone") != "start":
         rec["last_kb_msg"] = None
         rec["active_callbacks"] = []
+        save_state(STATE)
         await context.bot.send_message(uid, TXT["resume_hi"])
         await replay_user_history(context.bot, uid)
         return
@@ -2338,17 +2480,120 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _funnel_start_fresh(context.bot, uid)
 
 
-async def go_intro(update, context):
-    uid = update.effective_user.id
-    bot = context.bot
-    if not await send_circle(bot, uid, "circle_intro"):
-        return
-    await pause_after_circle(bot, uid)
+async def _job_after_circle_intro(context: ContextTypes.DEFAULT_TYPE):
+    uid = context.job.data["uid"]
+    bot = context.application.bot
+    try:
+        await bot.send_chat_action(uid, ChatAction.TYPING)
+    except Exception:
+        pass
     await send_step(bot, uid, TXT["after_circle_intro"],
                     [(BTN["v1_watch"], "go_v1_play", False)],
                     skip_pause=True, guide_teaser=True,
                     milestone="after_circle_intro")
     set_step(uid, "intro")
+
+
+async def _job_after_v1_video(context: ContextTypes.DEFAULT_TYPE):
+    uid = context.job.data["uid"]
+    bot = context.application.bot
+    app = context.application
+    try:
+        await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
+    except Exception:
+        pass
+    await send_step(bot, uid, TXT["after_v1_video"],
+                    [(BTN["v1_proofs"], "go_v1_proofs", False)],
+                    skip_pause=True, milestone="after_v1_video")
+    set_step(uid, "v1")
+    schedule_drip(app, uid, "after_v1", DRIP_HOURS["after_v1"])
+
+
+async def _job_after_v2_video(context: ContextTypes.DEFAULT_TYPE):
+    uid = context.job.data["uid"]
+    bot = context.application.bot
+    try:
+        await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
+    except Exception:
+        pass
+    await send_step(bot, uid, TXT["after_v2_video"],
+                    [(BTN["v2_proofs"], "go_v2_proofs", False)],
+                    skip_pause=True, milestone="after_v2_video")
+    set_step(uid, "v2")
+
+
+async def _job_after_v3_video(context: ContextTypes.DEFAULT_TYPE):
+    uid = context.job.data["uid"]
+    bot = context.application.bot
+    app = context.application
+    try:
+        await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
+    except Exception:
+        pass
+    await send_step(bot, uid, TXT["after_v3_video"],
+                    [(BTN["to_fork"], "go_v3_after", False)],
+                    skip_pause=True, milestone="after_v3_video")
+    set_step(uid, "v3")
+    schedule_drip(app, uid, "after_v3", DRIP_HOURS["after_v3"])
+
+
+async def _job_after_fork_circle(context: ContextTypes.DEFAULT_TYPE):
+    uid = context.job.data["uid"]
+    bot = context.application.bot
+    app = context.application
+    try:
+        await bot.send_chat_action(uid, ChatAction.TYPING)
+    except Exception:
+        pass
+    set_step(uid, "offer")
+    await send_step(
+        bot, uid, TXT["after_fork_circle"],
+        fork_inline_rows(uid),
+        skip_pause=True, skip_questions_hint=True,
+        milestone="after_fork",
+    )
+    track_milestone(uid, "after_fork")
+    await refresh_main_keyboard(
+        bot, uid,
+        "👇 Кнопки меню закреплены внизу — ими можно пользоваться "
+        "в любой момент.",
+    )
+    schedule_bonus_remind(app, uid)
+    schedule_drip(app, uid, "after_offer", DRIP_HOURS["after_offer"])
+
+
+async def go_intro(update, context):
+    uid = update.effective_user.id
+    bot = context.bot
+    hold = None
+    try:
+        await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
+    except Exception:
+        pass
+    try:
+        hold = await bot.send_message(uid, "👋 Секунду…")
+    except Exception:
+        pass
+    if not await send_circle(bot, uid, "circle_intro"):
+        if hold:
+            try:
+                await bot.edit_message_text(
+                    "Не удалось загрузить — нажмите /start ещё раз 👇",
+                    uid, hold.message_id,
+                )
+            except Exception:
+                pass
+        return
+    if hold:
+        try:
+            await bot.delete_message(uid, hold.message_id)
+        except Exception:
+            pass
+    schedule_funnel_pause(
+        context.application, uid,
+        funnel_pause_sec(uid, CIRCLE_PAUSE_SEC),
+        _job_after_circle_intro, "circle_intro",
+    )
 
 
 async def go_v1_prep(update, context):
@@ -2362,12 +2607,11 @@ async def go_v1_play(update, context):
     bot = context.bot
     if not await send_media_file(bot, uid, "video_1"):
         return
-    await pause_after_video(bot, uid, "video_1")
-    await send_step(bot, uid, TXT["after_v1_video"],
-                    [(BTN["v1_proofs"], "go_v1_proofs", False)],
-                    skip_pause=True, milestone="after_v1_video")
-    set_step(uid, "v1")
-    schedule_drip(context.application, uid, "after_v1", DRIP_HOURS["after_v1"])
+    schedule_funnel_pause(
+        context.application, uid,
+        funnel_pause_sec(uid, MEDIA_TO_TEXT_PAUSE_SEC),
+        _job_after_v1_video, "after_v1",
+    )
 
 
 async def go_v1_proofs(update, context):
@@ -2408,11 +2652,11 @@ async def go_v2_video(update, context):
     bot = context.bot
     if not await send_media_file(bot, uid, "video_2"):
         return
-    await pause_after_video(bot, uid, "video_2")
-    await send_step(bot, uid, TXT["after_v2_video"],
-                    [(BTN["v2_proofs"], "go_v2_proofs", False)],
-                    skip_pause=True, milestone="after_v2_video")
-    set_step(uid, "v2")
+    schedule_funnel_pause(
+        context.application, uid,
+        funnel_pause_sec(uid, MEDIA_TO_TEXT_PAUSE_SEC),
+        _job_after_v2_video, "after_v2",
+    )
 
 
 async def go_v2_proofs(update, context):
@@ -2456,12 +2700,11 @@ async def go_v3_video(update, context):
     cancel_drips(context.application, uid)
     if not await send_media_file(bot, uid, "video_3"):
         return
-    await pause_after_video(bot, uid, "video_3")
-    await send_step(bot, uid, TXT["after_v3_video"],
-                    [(BTN["to_fork"], "go_v3_after", False)],
-                    skip_pause=True, milestone="after_v3_video")
-    set_step(uid, "v3")
-    schedule_drip(context.application, uid, "after_v3", DRIP_HOURS["after_v3"])
+    schedule_funnel_pause(
+        context.application, uid,
+        funnel_pause_sec(uid, MEDIA_TO_TEXT_PAUSE_SEC),
+        _job_after_v3_video, "after_v3",
+    )
 
 
 async def go_v3_after(update, context):
@@ -2479,23 +2722,11 @@ async def go_fork(update, context):
     cancel_drips(context.application, uid)
     if not await send_circle(bot, uid, "circle_fork"):
         return
-    await pause_after_circle(bot, uid)
-    set_step(uid, "offer")
-    await send_step(
-        bot, uid, TXT["after_fork_circle"],
-        fork_inline_rows(uid),
-        skip_pause=True, skip_questions_hint=True,
-        milestone="after_fork",
+    schedule_funnel_pause(
+        context.application, uid,
+        funnel_pause_sec(uid, CIRCLE_PAUSE_SEC),
+        _job_after_fork_circle, "fork_circle",
     )
-    track_milestone(uid, "after_fork")
-    await refresh_main_keyboard(
-        bot, uid,
-        "👇 Кнопки меню закреплены внизу — ими можно пользоваться "
-        "в любой момент.",
-    )
-    schedule_bonus_remind(context.application, uid)
-    schedule_drip(context.application, uid, "after_offer",
-                  DRIP_HOURS["after_offer"])
 
 
 async def go_offer_menu(update, context):
@@ -2749,15 +2980,27 @@ async def go_guide(update, context):
 
 async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
-    d = q.data
+    d = q.data or ""
     uid = update.effective_user.id
-    if d in ("go_v1_play", "go_v2_video", "go_v3_video", "go_v3_prep"):
-        await q.answer("Загружаю видео…", show_alert=False)
-    else:
-        await q.answer()
+    # Сразу отвечаем Telegram (иначе «Query is too old») и шаг воронки — в фоне.
+    asyncio.create_task(safe_answer_callback(q, d))
+    asyncio.create_task(_on_button_impl(update, context, d, uid))
+
+
+async def _on_button_impl(update: Update, context: ContextTypes.DEFAULT_TYPE,
+                          d, uid):
+    q = update.callback_query
     if not d.startswith("mk_"):
         active = u(uid).get("active_callbacks") or []
         if active and d not in active:
+            try:
+                await context.bot.send_message(
+                    uid,
+                    "👆 Эта кнопка уже неактивна — нажмите кнопку "
+                    "в последнем сообщении ниже.",
+                )
+            except Exception:
+                pass
             return
     routes = {
         "go_intro":         go_intro,
@@ -2789,7 +3032,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "lm_check":         lm_check,
     }
     if d in routes:
-        await routes[d](update, context)
+        asyncio.create_task(run_funnel_step(routes[d], update, context))
         return
     if d.startswith("mk_"):
         # mk_{lead_id}_{status} — только админ
@@ -3202,9 +3445,15 @@ async def on_error(update, context):
     409 Conflict при редеплое (на секунду два экземпляра) — не страшно."""
     err = context.error
     if "Conflict" in str(err):
-        log.warning("Conflict (обычно при перезапуске — два экземпляра на "
-                    "секунду). Если повторяется постоянно — проверь, что бот "
-                    "не запущен где-то ещё.")
+        log.error(
+            "409 Conflict — бот запущен в ДВУХ местах одновременно! "
+            "Останови лишний экземпляр (Railway + локальный ПК, или два деплоя). "
+            "Пока два процесса живы — апдейты теряются и кажется, что бот «завис»."
+        )
+        return
+    err_s = str(err).lower()
+    if "too old" in err_s or "query id is invalid" in err_s:
+        log.debug("Протухшая inline-кнопка (после redeploy или долгой очереди): %s", err)
         return
     log.error("Ошибка при обработке апдейта: %s", err)
 
@@ -3248,6 +3497,12 @@ async def post_init(application):
         log.warning("post_init: %s", e)
     setup_auto_reports(application)
     restore_bonus_reminds(application)
+    asyncio.create_task(_state_flush_loop())
+    log.info("Фоновое сохранение users.json включено (не блокирует других пользователей)")
+
+
+async def post_shutdown(application):
+    await flush_state_now()
 
 
 def restore_bonus_reminds(application):
@@ -3273,7 +3528,24 @@ def main():
     if not PROMO_SECRET:
         log.warning("PROMO_SECRET не задан — персональные скидки не выдаются.")
 
-    app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    from telegram.request import HTTPXRequest
+    tg_request = HTTPXRequest(
+        connection_pool_size=32,
+        read_timeout=90,
+        write_timeout=90,
+        connect_timeout=30,
+        pool_timeout=30,
+    )
+
+    app = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .request(tg_request)
+        .concurrent_updates(True)
+        .post_init(post_init)
+        .post_shutdown(post_shutdown)
+        .build()
+    )
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("programs", cmd_programs))
