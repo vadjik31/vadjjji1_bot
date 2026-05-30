@@ -97,7 +97,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260530m"
+WEBAPP_BUILD = "20260530n"
 
 APP_DATA_API = (
     os.getenv("APP_DATA_API", "").strip()
@@ -619,6 +619,16 @@ TXT = {
         "Не получилось проверить подписку. Возможно, канал ещё "
         "настраивается или бот не видит статус.\n\n"
         "Напишите мне лично — пришлю гайд вручную 👇"
+    ),
+    "free_text_menu": (
+        "Получил ваше сообщение 🙂\n\n"
+        "Кнопки меню внизу на месте — ими можно пользоваться "
+        "в любой момент.\n\n"
+        "Личный вопрос — «💬 У меня есть вопросы» в меню."
+    ),
+    "free_text_funnel": (
+        "Вижу сообщение 🙂 Продолжайте по кнопкам в чате выше — "
+        "нижнее меню с форматами откроется на следующем шаге."
     ),
     "promo_hot": (
         "Отлично 🙂\n\n"
@@ -2030,6 +2040,22 @@ def main_reply_keyboard(uid=None, app_reset=False):
     return ReplyKeyboardMarkup(
         rows, resize_keyboard=True, is_persistent=True,
     )
+
+
+def user_has_main_menu(rec):
+    """Нижнее меню уже должно быть у человека (оффер / скидка)."""
+    if rec.get("step") in OFFER_STEPS:
+        return True
+    if rec.get("bonus_claimed"):
+        return True
+    return promo_is_active(rec)
+
+
+async def send_inline_then_menu(bot, uid, text, rows):
+    """Inline-кнопка + снова нижнее меню (иначе на телефоне пропадает)."""
+    await bot.send_message(normalize_uid(uid), text, reply_markup=kb(rows))
+    if user_has_main_menu(u(uid)):
+        await refresh_main_keyboard(bot, uid)
 
 
 async def send_with_main_menu(bot, chat_id, text, clear_inline=False,
@@ -3461,6 +3487,26 @@ async def go_lead(update, context):
             log.error("notify admin failed: %s", e)
 
 
+async def on_free_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Случайный текст в чате — не ломаем воронку, возвращаем меню внизу."""
+    msg = update.effective_message
+    if not msg or not msg.text:
+        return
+    uid = update.effective_user.id
+    bot = context.bot
+    rec = u(uid)
+    if user_has_main_menu(rec):
+        await send_with_main_menu(
+            bot, uid, TXT["free_text_menu"],
+            skip_questions_hint=True, skip_pause=True,
+        )
+    else:
+        await send_step(
+            bot, uid, TXT["free_text_funnel"],
+            skip_pause=True, skip_questions_hint=True,
+        )
+
+
 async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Нижнее меню: результаты, гайд, подсказка по форматам."""
     msg = update.effective_message
@@ -3480,9 +3526,8 @@ async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Напишите мне — отвечу лично 👇",
             clear_inline=False, skip_questions_hint=True,
         )
-        await bot.send_message(
-            uid, "👇",
-            reply_markup=kb([(BTN["contact"], CALL_LINK, True)]),
+        await send_inline_then_menu(
+            bot, uid, "👇", [(BTN["contact"], CALL_LINK, True)],
         )
         return
     if text == MENU_EARN:
@@ -3495,27 +3540,20 @@ async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "Калькулятор скоро будет в меню. Пока — напишите Вадиму 👇",
                 clear_inline=False,
             )
-            await bot.send_message(
-                uid, "👇",
-                reply_markup=kb([(BTN["contact"], CALL_LINK, True)]),
+            await send_inline_then_menu(
+                bot, uid, "👇", [(BTN["contact"], CALL_LINK, True)],
             )
         return
     if text == MENU_ABOUT:
         await send_with_main_menu(bot, uid, TXT["menu_about"], clear_inline=False)
-        await bot.send_message(
-            uid, "👇",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton(BTN["about_open"], url=ABOUT_LINK),
-            ]]),
+        await send_inline_then_menu(
+            bot, uid, "👇", [(BTN["about_open"], ABOUT_LINK, True)],
         )
         return
     if text == MENU_RESULTS:
         await send_with_main_menu(bot, uid, TXT["menu_results"], clear_inline=False)
-        await bot.send_message(
-            uid, "👇",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton(BTN["results_open"], url=RESULTS_LINK),
-            ]]),
+        await send_inline_then_menu(
+            bot, uid, "👇", [(BTN["results_open"], RESULTS_LINK, True)],
         )
         return
     if text == MENU_GUIDE:
@@ -4273,6 +4311,9 @@ def main():
     app.add_handler(CallbackQueryHandler(on_button))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, on_webapp_data))
     app.add_handler(MessageHandler(main_menu_filter(), on_main_menu))
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND, on_free_text,
+    ))
     app.add_handler(MessageHandler(
         filters.VIDEO | filters.VIDEO_NOTE | filters.PHOTO
         | filters.Document.ALL,
