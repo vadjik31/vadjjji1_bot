@@ -97,7 +97,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260530h"
+WEBAPP_BUILD = "20260530i"
 
 APP_DATA_API = (
     os.getenv("APP_DATA_API", "").strip()
@@ -1688,9 +1688,6 @@ def flow_date_short():
 def formats_menu_label(uid=None):
     """Подпись кнопки «Форматы» — со скидкой после закрепления бонуса."""
     if uid is not None and user_uses_discount_pay(uid):
-        fd = flow_date_short()
-        if fd:
-            return f"{BTN['promo_app']} · {fd}"
         return BTN["promo_app"]
     return MENU_FORMATS
 
