@@ -65,7 +65,7 @@ MENU_FORMATS = "💎 Форматы сотрудничества и обучен
 MENU_RESULTS = "📈 Результаты учеников"
 MENU_GUIDE = "📘 Забрать гайд, 3 фатальных ошибки"
 MENU_ABOUT = "👤 Обо мне"
-MENU_EARN = "💸 Сколько можно заработать на Амазон"
+MENU_EARN = "💸 Посчитать мой доход"
 MENU_QUESTIONS = "💬 У меня есть вопросы"
 
 QUESTIONS_HINT = (
@@ -83,6 +83,7 @@ WEBAPP_ENGAGE_SEC = 30
 BONUS_REMIND_HOURS = float(os.getenv("BONUS_REMIND_HOURS", "3") or "3")
 BONUS_REMIND_SEC = max(3600, int(BONUS_REMIND_HOURS * 3600))
 BONUS_REMIND_MAX = int(os.getenv("BONUS_REMIND_MAX", "3") or "3")
+BONUS_REMIND_KEYS = ("bonus_remind_1", "bonus_remind_2", "bonus_remind_3")
 OFFER_STEPS = frozenset({"fork", "offer", "lead", "qualified", "qualified_cold"})
 PAY_TARIFFS = (
     ("💳 Сам — оплатить", "myself"),
@@ -95,7 +96,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260529f"
+WEBAPP_BUILD = "20260530c"
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -232,14 +233,17 @@ HOWMANY_IMG_URLS = []
 
 
 # ──────────────────────────────────────────────────────────────────────
-# 5) ЗАДЕРЖКИ ДОГОНЯЮЩИХ (в часах).
+# 5) ДОГОНЯЮЩИЕ: 2 на step, часы от входа на step (Д2 = +3 ч к Д1, offer +24 ч).
 # ──────────────────────────────────────────────────────────────────────
 
-DRIP_HOURS = {
-    "after_v1":     3,
-    "after_v3":     6,
-    "after_offer":  24,
-    "after_lead":   12,
+STEP_DRIP_SCHEDULE = {
+    "start":     [(2, "drip_start_1"), (5, "drip_start_2")],
+    "intro":     [(2, "drip_intro_1"), (5, "drip_intro_2")],
+    "v1":        [(2, "drip_v1_1"), (5, "drip_v1_2")],
+    "v2":        [(2, "drip_v2_1"), (5, "drip_v2_2")],
+    "v3":        [(2, "drip_v3_1"), (5, "drip_v3_2")],
+    "offer":     [(24, "drip_offer_1"), (48, "drip_offer_2")],
+    "qualified": [(12, "drip_lead_1"), (24, "drip_lead_2")],
 }
 
 
@@ -249,57 +253,57 @@ DRIP_HOURS = {
 
 TXT = {
     "start": (
-        "💰 Первые $750 чистыми на Amazon — с нуля.\n\n"
-        "🎬 Покажу путь Игоря: как он без опыта разобрался, нашёл товар, "
-        "сделал первую закупку и получил прибыль.\n\n"
-        "🚫 Без «волшебных схем» и обещаний миллиона за месяц.\n\n"
-        "📊 Также разберём примеры людей, которые уже зарабатывают "
-        "$5 000–7 000 в месяц на Amazon — с реальными скриншотами из "
-        "кабинета продавца.\n\n"
-        "🎁 Важно: в конце — бонус, PDF-гайд «3 фатальные ошибки новичка "
-        "на Amazon»: из-за них люди теряют деньги и уходят с Amazon "
-        "(наблюдение за 6 лет опыта).\n\n"
-        "👇 Поехали?"
+        "Привет 👋 На связи Вадим.\n\n"
+        "Покажу, как выйти на первые $750 чистыми на Amazon — с нуля, "
+        "без опыта и без «волшебных схем».\n\n"
+        "Проведу вас тем же путём, что прошёл Игорь: как он разобрался, "
+        "нашёл товар, сделал первую закупку и забрал прибыль. По дороге — "
+        "реальные скрины кабинета людей, которые сейчас делают "
+        "$5 000–7 000 в месяц.\n\n"
+        "Сразу честно: миллиона за месяц не обещаю. Обещаю показать, "
+        "как это устроено на самом деле.\n\n"
+        "🎁 В конце — PDF «3 фатальные ошибки новичка»: из-за них за 6 лет "
+        "я видел, как люди теряли деньги и уходили с Amazon. Чтобы вы "
+        "так не делали.\n\n"
+        "Поехали? 👇"
     ),
     "after_circle_intro": (
-        "Приятно познакомиться 🙂\n\n"
-        "Дальше покажу, как на самом деле работает Amazon — без хаоса, "
+        "Рад познакомиться 🙂\n\n"
+        "Сейчас покажу, как Amazon работает на самом деле — без хаоса, "
         "догадок и красивых обещаний.\n\n"
-        "Сейчас — короткая история Игоря на 4 минуты.\n\n"
-        "Он тоже начинал с нуля: не понимал, какие товары выбирать, "
-        "где искать поставщиков и как вообще подойти к первой закупке.\n\n"
-        "В видео разберём, почему первые товары не сработали, что он "
-        "изменил в подходе и как в итоге вышел на первые чистые деньги.\n\n"
-        "Без воды и мотивационных сказок — просто реальный путь от "
-        "«я не понимаю, что делать» до первого результата.\n\n"
-        "▶️ Включай 👇"
+        "Начнём с короткой истории Игоря, минуты на 4. Он начинал ровно "
+        "с того же: не понимал, какие товары брать, где искать поставщиков "
+        "и как вообще подойти к первой закупке.\n\n"
+        "В видео разберём, почему первые товары не зашли, что он поменял "
+        "в подходе — и как в итоге вышел на первые чистые деньги. Без воды "
+        "и мотивации, просто реальный путь от «я не понимаю, что делать» "
+        "до первого результата.\n\n"
+        "Включайте 👇"
     ),
     "after_v1_video": (
-        "Досмотрели? 👇\n\n"
-        "А теперь самое важное: почему первый список товаров оказался "
-        "слабым, какие ошибки в нём были — и что изменилось после правок."
+        "Досмотрели? 🙂\n\n"
+        "Теперь самое важное: почему первый список товаров оказался "
+        "слабым, что именно в нём не сходилось — и что изменилось "
+        "после правок."
     ),
     "proofs_v1_intro": (
-        "📈 Кстати, ниже — реальные результаты учеников на Amazon. Такого "
-        "уровня можно достичь, если идти по шагам, а не «угадывать» "
-        "товар наугад."
+        "📈 А вот, кстати, реальные результаты учеников. Такого можно "
+        "дойти, если идти по шагам — а не угадывать товар наугад."
     ),
     "proofs_v1_caption": (
-        "💡 Вот почему этот пример важен.\n\n"
-        "Игорь тоже не нашёл хороший товар с первого раза.\n\n"
-        "Где-то не сходились цифры.\n"
-        "Где-то товар выглядел нормально, но на практике не подходил.\n"
-        "А где-то закупка просто не имела смысла.\n\n"
-        "Но в этом и суть: он не бросил, а получил правки, переделал "
-        "работу — и уже со второй попытки нашёл нормальные варианты.\n\n"
+        "💡 Смотрите, почему этот пример важен.\n\n"
+        "Игорь тоже не нашёл хороший товар с первого раза. Где-то не "
+        "сходились цифры. Где-то товар выглядел нормально, а на деле не "
+        "подходил. Где-то закупка просто не имела смысла.\n\n"
+        "Но он не бросил — взял правки, переделал, и уже со второй "
+        "попытки нашёл рабочие варианты.\n\n"
         "Дальше всё пошло по цепочке:\n\n"
         "📦 закупка → 🏷 подготовка → 🚚 отправка на Amazon → "
         "💵 продажи → ✅ чистая прибыль.\n\n"
-        "Так и выглядит реальный путь на Amazon:\n"
-        "не «угадал товар», а проверил, исправил и дошёл до результата.\n\n"
-        "Готовы к следующему шагу? 👇\n\n"
-        "Сейчас покажу простыми словами, откуда вообще берётся прибыль "
-        "на Amazon."
+        "Вот так и выглядит настоящий путь: не «угадал товар», а "
+        "проверил, исправил, дошёл до результата.\n\n"
+        "Дальше покажу простыми словами, откуда вообще берётся "
+        "прибыль 👇"
     ),
     "after_v1": (
         "💡 Смысл не в том, что Игорь сразу всё понял.\n\n"
@@ -308,105 +312,112 @@ TXT = {
         "и что делает продавец 👇"
     ),
     "after_v2_video": (
-        "Досмотрели? 👇\n\n"
-        "Дальше — примеры: как эта модель выглядит на разных рынках."
+        "Досмотрели? 🙂\n\n"
+        "Покажу теперь, как эта же модель выглядит на разных рынках — "
+        "чтобы вы видели, что она не «только для одной страны»."
     ),
     "bridge_v2": (
-        "⚙️ Суть простая.\n\n"
-        "🛒 На Amazon уже есть покупатели. Люди каждый день заходят и "
-        "покупают товары.\n\n"
-        "Вам не нужно создавать новый товар, делать бренд и уговаривать "
-        "людей купить.\n\n"
-        "🎯 Задача другая:\n\n"
+        "⚙️ Суть проще, чем кажется.\n\n"
+        "На Amazon уже есть покупатели. Люди каждый день заходят и "
+        "покупают. Вам не нужно создавать товар, строить бренд и кого-то "
+        "уговаривать.\n\n"
+        "Задача другая:\n\n"
         "1️⃣ найти товар, который уже покупают\n"
-        "2️⃣ найти место, где его можно купить дешевле\n"
-        "3️⃣ проверить расходы\n"
-        "4️⃣ отправить товар на склад Amazon\n"
+        "2️⃣ найти, где его взять дешевле\n"
+        "3️⃣ посчитать расходы\n"
+        "4️⃣ отправить на склад Amazon\n"
         "5️⃣ забрать разницу после продажи\n\n"
-        "▶️ В следующем видео покажу всю схему по шагам 👇"
+        "В следующем видео разберу всю схему по шагам 👇"
     ),
     "proofs_v2_caption": (
-        "💡 Вот в этом и смысл модели.\n\n"
-        "✅ Вы не пытаетесь создать спрос с нуля. Спрос уже есть. Покупатели "
-        "уже есть. Товары уже продаются.\n\n"
-        "📋 Ваша задача — найти товар, где сходятся три вещи:\n\n"
-        "1️⃣ его можно купить дешевле;\n"
-        "2️⃣ его уже покупают на Amazon;\n"
-        "3️⃣ после всех расходов остаётся прибыль.\n\n"
-        "🔄 Когда такой товар найден, дальше начинается понятный цикл:\n\n"
-        "купили → подготовили → отправили → продали → часть денег снова "
-        "вложили в товар.\n\n"
-        "▶️ Готов к следующему видео?"
+        "💡 Вот в этом и весь смысл.\n\n"
+        "Вы не создаёте спрос с нуля. Спрос уже есть, покупатели уже "
+        "есть, товары уже продаются.\n\n"
+        "Ваша задача — найти товар, где сходятся три вещи:\n\n"
+        "1️⃣ его можно купить дешевле\n"
+        "2️⃣ его уже покупают на Amazon\n"
+        "3️⃣ после всех расходов остаётся прибыль\n\n"
+        "Нашли такой — дальше понятный цикл:\n\n"
+        "купили → подготовили → отправили → продали → часть вернули "
+        "в товар.\n\n"
+        "И работает это хоть из СНГ, хоть из Европы, хоть из США. "
+        "Неважно, кем вы были раньше — наёмным сотрудником, в декрете "
+        "или вообще из другой сферы. Amazon про это не спрашивает.\n\n"
+        "Готовы дальше? 👇"
     ),
     "after_v2": (
         "Теперь вы понимаете, как это работает 🙂\n\n"
-        "⚠️ Но есть важный момент: даже когда человек понимает схему, он "
-        "часто всё равно не начинает.\n\n"
-        "💭 Обычно мешают одни и те же причины:\n\n"
+        "Но есть момент: даже когда схема понятна, человек часто всё "
+        "равно не начинает. И мешает обычно одно и то же:\n\n"
         "💸 «нет денег»\n"
         "⏰ «нет времени»\n"
         "🗣 «я не знаю язык»\n"
         "🔒 «а вдруг заблокируют»\n"
         "⌛ «уже поздно заходить»\n"
-        "📦 «там слишком много конкурентов»\n\n"
-        "▶️ Дальше — честный разбор: почему люди откладывают старт и "
-        "как с этим быть (~7 мин). Нажмите кнопку 👇"
+        "📦 «там одни конкуренты»\n\n"
+        "Дальше — честный разбор каждой причины. Не мотивация в стиле "
+        "«ты сможешь, если поверишь», а по пунктам, как с этим на самом "
+        "деле (~7 мин) 👇"
     ),
     "v3_loading": (
         "▶️ Загружаю видео «Почему не начинают» (~7 мин).\n\n"
         "Подождите несколько секунд — ролик появится следующим сообщением."
     ),
     "after_v3_video": (
-        "✅ Если вы дошли до этого момента, вы уже сделали больше, чем "
-        "большинство.\n\n"
-        "📋 Вы разобрали путь Игоря, увидели рабочую схему и поняли, "
-        "какие страхи чаще всего мешают начать."
+        "✅ Если вы дошли до этого момента — вы уже сделали больше, "
+        "чем большинство.\n\n"
+        "Разобрали путь Игоря, увидели рабочую схему и поняли, какие "
+        "страхи чаще всего мешают начать. Осталось последнее — как пройти "
+        "этот путь самому."
     ),
     "after_v3": (
-        "Как получить первые продажи на Амазон без хаоса и ошибок? "
-        "Хотите узнать? Если да, то клацайте 👇"
+        "Как получить первые продажи без хаоса и типичных ошибок? "
+        "Если интересно — жмите 👇"
     ),
     "bonus_offer_after_app": (
         "Но вы могли бы активировать бонус и получить уникальные цены "
         "для вас, которые значительно комфортнее, а также супер-предложение!\n\n"
         "Активировать?"
     ),
-    "bonus_remind": (
-        "🔥 Спецпредложение ждёт вас в мини-приложении.\n\n"
-        "Откройте «💎 Форматы сотрудничества» и нажмите кнопку — "
-        "увидите персональные цены со скидкой {discount}%.\n\n"
-        "💬 Если есть вопросы — нажмите «У меня есть вопросы» в меню внизу."
+    "bonus_remind_1": (
+        "В «Форматах» можно один раз посмотреть цены со скидкой "
+        "{discount}%.\n\n"
+        "Откройте мини-приложение и нажмите кнопку внутри — меньше "
+        "минуты. Просто посмотреть цифры, без оплаты."
+    ),
+    "bonus_remind_2": (
+        "Скидка пока не закреплена — её нужно один раз активировать "
+        "в приложении.\n\n"
+        "«💎 Форматы» → кнопка со спец. ценами → увидите "
+        "«было → стало». Не актуально — пропустите 🙂"
+    ),
+    "bonus_remind_3": (
+        "Последний раз напомню про скидку 🙂\n\n"
+        "−{discount}% доступны в «Форматах» — только посмотреть, без "
+        "оплаты и регистрации, ничего не списывается. Дальше дёргать "
+        "не буду."
     ),
     "after_fork_circle": (
-        "👀 Смотрите.\n\n"
-        "Самостоятельно разобраться можно.\n"
-        "Но на практике большинство новичков теряют время и деньги не "
-        "из-за отсутствия информации.\n\n"
-        "А из-за ошибок, которые сначала кажутся мелочами:\n\n"
-        "— поставщик выглядит нормальным, но потом не проходит проверку;\n"
-        "— товар кажется прибыльным, но не продаётся;\n"
-        "— документы оформлены не так, как нужно;\n"
-        "— прибыль посчитана без комиссий, налогов и реальных расходов.\n\n"
-        "Именно поэтому я сделал формат, где вы проходите путь не "
-        "вслепую, а по понятной системе: шаг за шагом, с проверками, "
-        "поддержкой и фокусом на первую прибыль.\n\n"
-        "📋 Все разделы — в меню внизу 👇\n\n"
-        "💸 Калькулятор поможет быстро оценить, сколько вы можете "
-        "зарабатывать на Amazon.\n\n"
-        "🔥 В «Форматах сотрудничества и обучения» — разбор, как пройти "
-        "путь от нуля до первых продаж и выйти на результат примерно за "
-        "полтора месяца.\n\n"
-        "💬 Если остался вопрос — нажмите «У меня есть вопросы».\n"
-        "Лучше задать его сейчас, чем потом ошибиться на практике."
+        "Смотрите 🙂\n\n"
+        "Дойти самому реально — но в одиночку легко застрять на "
+        "мелочах: то поставщик не проходит проверку, то прибыль "
+        "посчитана без комиссий. Обидно терять на этом первые "
+        "деньги.\n\n"
+        "Поэтому я и собрал форматы, где вы идёте не вслепую, а по "
+        "шагам — с проверкой каждого решения и поддержкой до первой "
+        "реальной продажи. Обычно это занимает около полутора "
+        "месяцев.\n\n"
+        "Самое сложное вы уже сделали — разобрались, как это "
+        "работает. Дальше проще, когда рядом есть кто-то, кто этот "
+        "путь уже прошёл.\n\n"
+        "👇 Откройте «Форматы» — там цены и что входит. А рядом "
+        "калькулятор: прикинуть, сколько реально заработать под ваш "
+        "бюджет. Без обязательств — просто посмотреть."
     ),
     "after_fork_menu_hint": (
-        "📋 Всё подробно — в меню внизу 👇\n\n"
-        "• 💎 форматы и обучение — мини-приложение\n"
-        "• 💸 сколько можно заработать на Амазон — калькулятор\n"
-        "• 📈 результаты учеников — сайт\n"
-        "• 📘 PDF-гайд — бесплатно\n"
-        "• 👤 обо мне — статья в Telegraph\n"
-        "• 💬 у меня есть вопросы — напишите мне"
+        "👇 Всё под рукой в меню внизу: «Форматы и цены», "
+        "«Калькулятор», результаты учеников и вопросы.\n\n"
+        "Можно вернуться в любой момент — ничего не потеряется."
     ),
     "menu_results": (
         "Результаты учеников — на сайте, со скринами и цифрами 👇"
@@ -415,10 +426,8 @@ TXT = {
         "Коротко о том, кто я, чем занимаюсь и почему Amazon — в статье 👇"
     ),
     "menu_earn": (
-        "💸 Калькулятор — сколько можно заработать на Amazon при разном "
-        "бюджете.\n\n"
-        "Нажмите кнопку «Сколько можно заработать на Амазон» в меню внизу — "
-        "откроется "
+        "💸 Калькулятор — прикинуть доход на Amazon при разном бюджете.\n\n"
+        "Нажмите «💸 Посчитать мой доход» в меню внизу — откроется "
         "мини-приложение 👇"
     ),
     "programs_text": (
@@ -454,26 +463,84 @@ TXT = {
         "Отлично 🙂\n\n"
         "Напишите мне — разберём вашу ситуацию и подберём формат старта 👇"
     ),
-    "drip_after_v1": (
-        "Вы остановились на важном месте 🙂\n\n"
-        "📋 Дальше я объясняю, откуда вообще берётся прибыль на Amazon и "
-        "почему Игорь смог выйти на результат не через удачу, а через "
-        "понятную схему.\n\n"
-        "▶️ Посмотрите следующее видео 👇"
+    "drip_start_1": (
+        "Открыли и закрыли — это нормально, почти все так с первого "
+        "раза 🙂\n\n"
+        "Если коротко: дальше я на пальцах показываю, как люди с нуля "
+        "выходят на первые деньги на Amazon. Без регистраций — просто "
+        "посмотреть. Гляньте, когда будет минута 👇"
     ),
-    "drip_after_v3": (
-        "Вы почти дошли до конца 🙌\n\n"
-        "Остался шаг, где я объясняю, как можно пройти этот путь не "
-        "самому в хаосе, а по структуре и с поддержкой.\n\n"
-        "Продолжим? 👇"
+    "drip_start_2": (
+        "Это, кстати, не только для тех, кто «в теме».\n\n"
+        "С нуля начинали и айтишники, и мамы в декрете, и люди с "
+        "обычной работой за границей. Amazon не спрашивает, кем вы были "
+        "раньше — показать, с чего начать? 👇"
     ),
-    "drip_after_offer": (
-        "Если ещё смотрите — откройте раздел в меню внизу или заберите "
-        "скидку 👇"
+    "drip_intro_1": (
+        "Кружок посмотрели — дальше короткое видео, минуты на 4.\n\n"
+        "По-честному: с чего реально начинают, где чаще всего лажают "
+        "с первым товаром и как доходят до первых денег. Включайте, "
+        "когда удобно 👇"
     ),
-    "drip_after_lead": (
-        "Вы забрали бонус — я на связи 🙌\n\n"
-        "Если удобнее написать напрямую, вот мой контакт 👇"
+    "drip_intro_2": (
+        "Понимаю, даже 4 минуты — это «сесть и посмотреть».\n\n"
+        "Но это, наверное, единственное место, где быстро становится "
+        "ясно: реально оно или очередная сказка про лёгкие деньги. "
+        "Решите уже по факту 👇"
+    ),
+    "drip_v1_1": (
+        "Обещал разбор — вот он: на живом примере, что именно не "
+        "сходилось в первых товарах и что поменяли.\n\n"
+        "Там же скрины результатов — видно, к чему ведёт нормальная "
+        "проверка 👇"
+    ),
+    "drip_v1_2": (
+        "2–3 минуты, без воды.\n\n"
+        "Это как раз момент, где становится понятно, откуда вообще "
+        "берётся прибыль. Дальше — только конкретика 👇"
+    ),
+    "drip_v2_1": (
+        "Схему по шагам разобрали — найти, проверить, отправить на склад.\n\n"
+        "Дальше короткие примеры с разных рынков: чтобы было видно, "
+        "что это работает не в одной стране 👇"
+    ),
+    "drip_v2_2": (
+        "Особенно в тему, если вы не в СНГ.\n\n"
+        "Модель одна и та же — хоть из Берлина, хоть из Алматы, "
+        "отличия мелкие. Сейчас покажу на примерах 👇"
+    ),
+    "drip_v3_1": (
+        "Дальше — про то, как пройти этот путь: самому, в группе или "
+        "с сопровождением.\n\n"
+        "Без обязательств — можно просто посмотреть варианты и закрыть 👇"
+    ),
+    "drip_v3_2": (
+        "Если Amazon ещё интересен — логично хотя бы глянуть, как "
+        "заходят люди.\n\n"
+        "Там же калькулятор: прикинуть цифры под свой бюджет. И можно "
+        "задать вопрос, если что-то не сходится 👇"
+    ),
+    "drip_offer_1": (
+        "Не торопитесь с решением — это нормально 🙂\n\n"
+        "Если просто интересно, во сколько обходится старт — "
+        "откройте «Форматы»: там цены и что входит, без "
+        "обязательств. Посмотреть и закрыть — тоже нормально 👇"
+    ),
+    "drip_offer_2": (
+        "Многие на этом месте сначала считают цифры под себя 💸\n\n"
+        "В меню внизу есть калькулятор: вводите бюджет — покажет, "
+        "как может расти прибыль со временем. Иногда именно цифры "
+        "помогают понять, ваше это или нет 👇"
+    ),
+    "drip_lead_1": (
+        "Скидку закрепил 👌 Если удобнее обсудить голосом или в "
+        "личке — пишите напрямую.\n\n"
+        "Разберём вашу ситуацию без шаблонных ответов 👇"
+    ),
+    "drip_lead_2": (
+        "Таймер по скидке идёт.\n\n"
+        "Если остались вопросы по формату или старту — лучше задать "
+        "сейчас, пока −20% в силе 👇"
     ),
     "lm_offer": (
         "Перед стартом дам полезный материал 🎁\n\n"
@@ -582,24 +649,27 @@ GUIDE_TEASERS = [
 # ──────────────────────────────────────────────────────────────────────
 
 BTN = {
-    "start":      "Покажи, с чего начать",
-    "v1_watch":   "▶️ Смотреть историю Игоря (~4 мин)",
-    "v1_proofs":  "📸 Разбор: что пошло не так",
-    "to_v2":      "⚙️ Дальше — как работает схема",
-    "v2_watch":   "▶️ Смотреть схему по шагам (~6 мин)",
-    "v2_proofs":  "🌍 Примеры по странам",
-    "v3_yes":     "✅ Да",
-    "v3_watch":   "▶️ Смотреть: почему не начинают (~7 мин)",
+    "start":      "Показать, с чего начать",
+    "v1_watch":   "▶️ Включить видео (4 мин)",
+    "v1_proofs":  "📸 Показать, что пошло не так",
+    "to_v2":      "Откуда берётся прибыль",
+    "v2_watch":   "▶️ Смотреть схему по шагам (6 мин)",
+    "v2_proofs":  "🌍 Показать примеры по странам",
+    "v3_yes":     "✅ Да, дальше",
+    "v3_watch":   "▶️ Почему люди не начинают (7 мин)",
     "to_v3":      "▶️ Почему не начинают (~7 мин)",
+    "to_v3_next": "➡️ Показать как",
+    "show_formats": "➡️ Показать форматы",
     "to_fork":    "➡️ Дальше",
-    "to_fork_how": "Как пройти",
+    "to_fork_how": "Хочу узнать как",
     "students":   "Результаты учеников",
-    "programs":   "💎 Открыть мини-приложение",
+    "programs":   "💎 Открыть форматы и цены",
     "site":       "Открыть сайт с результатами",
     "results_open": "Открыть результаты на сайте",
     "about_open":   "Читать «Кто я»",
     "to_lead":    "🎁 Скидка −20% (24 ч)",
     "lm_get":     "📘 Забрать PDF-гайд",
+    "lm_get_first": "📘 Сначала забрать PDF-гайд",
     "contact":    "Написать Вадиму",
     # лид-магнит
     "lm_grab":    "Забрать топ-3 ошибки (бесплатно)",
@@ -1454,6 +1524,7 @@ async def run_funnel_step(handler, update, context):
             rec["funnel_claims"] = claims[-40:]
         invalidate_active_callbacks(uid)
         save_state(STATE)
+        await clear_nudge(context.bot, uid)
         try:
             await handler(update, context)
         except Exception:
@@ -1623,10 +1694,9 @@ async def refresh_main_keyboard(bot, uid, hint=None):
 def main_reply_keyboard_fallback(uid=None):
     """Меню без WebApp/url — если клиент не принял полную клавиатуру."""
     rows = [
-        [KeyboardButton(MENU_FORMATS)],
+        [KeyboardButton(MENU_EARN), KeyboardButton(MENU_FORMATS)],
         [KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)],
-        [KeyboardButton(MENU_ABOUT), KeyboardButton(MENU_EARN)],
-        [KeyboardButton(MENU_QUESTIONS)],
+        [KeyboardButton(MENU_ABOUT), KeyboardButton(MENU_QUESTIONS)],
     ]
     if uid is not None:
         rows.extend(pay_keyboard_rows(uid))
@@ -1692,18 +1762,17 @@ async def activate_bonus(update, context):
 
 def fork_inline_rows(uid):
     """Кнопки под сообщением после форка — видны сразу, даже если меню
-    внизу ещё не раскрылось."""
+    внизу ещё не раскрылось.
+    3 ряда: главное действие (Форматы), калькулятор на виду, гайд.
+    Результаты и контакт намеренно убраны — они в нижнем меню,
+    чтобы в момент решения не было паралича выбора."""
     rows = []
     if WEBAPP_URL:
         rows.append([programs_btn(uid)])
     hm = howmany_webapp_url()
     if hm:
         rows.append([(MENU_EARN, hm, "webapp")])
-    rows.append([(MENU_RESULTS, RESULTS_LINK, True)])
-    rows.append([
-        (BTN["lm_get"], "go_guide", False),
-        (BTN["contact"], CALL_LINK, True),
-    ])
+    rows.append([(BTN["lm_get_first"], "go_guide", False)])
     return rows
 
 
@@ -1717,32 +1786,41 @@ def main_menu_filter():
 
 
 def main_reply_keyboard(uid=None):
-    """Нижнее закреплённое меню (как на скрине)."""
+    """Нижнее закреплённое меню (как на скрине).
+    1-й ряд: калькулятор + форматы — калькулятор на виду."""
     rows = []
-    if WEBAPP_URL:
+    hm = howmany_webapp_url()
+    # Ряд 1: калькулятор и форматы рядом, оба на самом видном месте
+    if WEBAPP_URL and hm:
         rows.append([
+            KeyboardButton(MENU_EARN, web_app=WebAppInfo(url=hm)),
             KeyboardButton(
                 MENU_FORMATS,
                 web_app=WebAppInfo(url=webapp_url_full(uid)),
             ),
         ])
-    else:
-        rows.append([KeyboardButton(MENU_FORMATS)])
-    rows.append([KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)])
-    hm = howmany_webapp_url()
-    if hm:
+    elif WEBAPP_URL:
         rows.append([
-            KeyboardButton(MENU_ABOUT),
-            KeyboardButton(MENU_EARN, web_app=WebAppInfo(url=hm)),
-        ])
-    else:
-        rows.append([
-            KeyboardButton(MENU_ABOUT),
             KeyboardButton(MENU_EARN),
+            KeyboardButton(
+                MENU_FORMATS,
+                web_app=WebAppInfo(url=webapp_url_full(uid)),
+            ),
         ])
-    rows.append([
-        KeyboardButton(MENU_QUESTIONS),
-    ])
+    elif hm:
+        rows.append([
+            KeyboardButton(MENU_EARN, web_app=WebAppInfo(url=hm)),
+            KeyboardButton(MENU_FORMATS),
+        ])
+    else:
+        rows.append([
+            KeyboardButton(MENU_EARN),
+            KeyboardButton(MENU_FORMATS),
+        ])
+    # Ряд 2: результаты + гайд
+    rows.append([KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)])
+    # Ряд 3: обо мне + вопросы
+    rows.append([KeyboardButton(MENU_ABOUT), KeyboardButton(MENU_QUESTIONS)])
     if uid is not None:
         rows.extend(pay_keyboard_rows(uid))
     return ReplyKeyboardMarkup(
@@ -1772,6 +1850,28 @@ async def send_with_main_menu(bot, chat_id, text, clear_inline=False,
     )
     if chat_id not in _replaying_users and not is_funnel_locked(u(chat_id)):
         push_history(chat_id, {"t": "menu", "body": text})
+    return msg
+
+
+async def clear_nudge(bot, uid):
+    """Удалить последнее догоняющее (чтобы не копилось в чате)."""
+    rec = u(uid)
+    mid = rec.pop("nudge_msg_id", None)
+    if mid:
+        try:
+            await bot.delete_message(normalize_uid(uid), mid)
+        except Exception:
+            pass
+        save_state(STATE)
+
+
+async def send_nudge(bot, uid, send_fn):
+    """Новое догоняющее вместо предыдущего — одно «живое» напоминание."""
+    await clear_nudge(bot, uid)
+    msg = await send_fn()
+    if msg:
+        u(uid)["nudge_msg_id"] = msg.message_id
+        save_state(STATE)
     return msg
 
 
@@ -2164,11 +2264,14 @@ async def bonus_remind_fire(context: ContextTypes.DEFAULT_TYPE):
         return
     rec["bonus_remind_count"] = rec.get("bonus_remind_count", 0) + 1
     save_state(STATE)
+    idx = min(rec["bonus_remind_count"] - 1, len(BONUS_REMIND_KEYS) - 1)
+    text = TXT[BONUS_REMIND_KEYS[idx]].format(discount=PROMO_DISCOUNT)
     try:
-        await send_with_main_menu(
+        await send_nudge(
             context.bot, uid,
-            TXT["bonus_remind"].format(discount=PROMO_DISCOUNT),
-            skip_questions_hint=True,
+            lambda: send_with_main_menu(
+                context.bot, uid, text, skip_questions_hint=True,
+            ),
         )
     except Exception as e:
         log.error("bonus_remind_fire failed: %s", e)
@@ -2259,6 +2362,7 @@ async def show_promo(context, uid, user, temperature, from_app=False):
             )
         return
 
+    await clear_nudge(bot, uid)
     deadline = int(time.time()) + PROMO_HOURS * 3600
     link = build_discount_link(uid, deadline)
 
@@ -2397,55 +2501,82 @@ def cancel_drips(app, uid):
             job.schedule_removal()
 
 
-def schedule_drip(app, uid, tag, hours):
+# tag → (step, txt_key, rows|None, menu_only)
+DRIP_TAG_CONFIG = {
+    "drip_start_1":  ("start", "drip_start_1",  [( "start", "go_intro", False)], False),
+    "drip_start_2":  ("start", "drip_start_2",  [( "start", "go_intro", False)], False),
+    "drip_intro_1":  ("intro", "drip_intro_1",  [("v1_watch", "go_v1_play", False)], False),
+    "drip_intro_2":  ("intro", "drip_intro_2",  [("v1_watch", "go_v1_play", False)], False),
+    "drip_v1_1":     ("v1", "drip_v1_1",        [("v1_proofs", "go_v1_proofs", False)], False),
+    "drip_v1_2":     ("v1", "drip_v1_2",        [("v1_proofs", "go_v1_proofs", False)], False),
+    "drip_v2_1":     ("v2", "drip_v2_1",        [("v2_proofs", "go_v2_proofs", False)], False),
+    "drip_v2_2":     ("v2", "drip_v2_2",        [("v2_proofs", "go_v2_proofs", False)], False),
+    "drip_v3_1":     ("v3", "drip_v3_1",        [("show_formats", "go_fork", False)], False),
+    "drip_v3_2":     ("v3", "drip_v3_2",        [("show_formats", "go_fork", False)], False),
+    "drip_offer_1":  ("offer", "drip_offer_1",  None, True),
+    "drip_offer_2":  ("offer", "drip_offer_2",  None, True),
+    "drip_lead_1":   ("qualified", "drip_lead_1", [("contact", CALL_LINK, True)], False),
+    "drip_lead_2":   ("qualified", "drip_lead_2", [("contact", CALL_LINK, True)], False),
+}
+
+
+def _drip_rows(spec):
+    if not spec:
+        return None
+    return [(BTN[b], cb, kind) for b, cb, kind in spec]
+
+
+def schedule_step_drips(app, uid, step_key):
+    """2 догонялки на step — часы от входа на step (см. STEP_DRIP_SCHEDULE)."""
+    if not app or not app.job_queue:
+        return
     cancel_drips(app, uid)
-    app.job_queue.run_once(
-        drip_fire, when=hours * 3600,
-        name=f"drip_{uid}_{tag}",
-        data={"uid": uid, "tag": tag},
-    )
+    for hours, tag in STEP_DRIP_SCHEDULE.get(step_key, ()):
+        app.job_queue.run_once(
+            drip_fire,
+            when=max(60, int(hours * 3600)),
+            name=f"drip_{uid}_{tag}",
+            data={"uid": uid, "tag": tag},
+        )
 
 
 async def drip_fire(context: ContextTypes.DEFAULT_TYPE):
     data = context.job.data
     uid = data["uid"]
     tag = data["tag"]
+    cfg = DRIP_TAG_CONFIG.get(tag)
+    if not cfg:
+        return
+    expected_step, txt_key, row_spec, menu_only = cfg
     rec = u(uid)
-
-    expected_step = {
-        "after_v1":    "v1",
-        "after_v3":    "v3",
-        "after_offer": "offer",
-        "after_lead":  "qualified",
-    }.get(tag)
     if rec.get("step") != expected_step:
         return
 
     bot = context.bot
+    text = TXT[txt_key]
     try:
-        if tag == "after_v1":
-            await send_step(bot, uid, TXT["drip_after_v1"],
-                            [(BTN["to_v2"], "go_v2_prep", False)])
-        elif tag == "after_v3":
-            await send_step(bot, uid, TXT["drip_after_v3"],
-                            [(BTN["to_fork"], "go_fork", False)],
-                            guide_teaser=True)
-        elif tag == "after_offer":
-            await send_with_main_menu(bot, uid, TXT["drip_after_offer"])
-            await send_step(
+        if menu_only:
+            await send_nudge(
                 bot, uid,
-                "Скидка на обучение — по кнопке ниже 👇",
-                [(BTN["to_lead"], "go_lead", False)],
+                lambda: send_with_main_menu(
+                    bot, uid, text, skip_questions_hint=True,
+                ),
             )
-        elif tag == "after_lead":
-            await send_step(bot, uid, TXT["drip_after_lead"], [(BTN["contact"], CALL_LINK, True)])
+        else:
+            rows = _drip_rows(row_spec)
+            await send_nudge(
+                bot, uid,
+                lambda: send_step(
+                    bot, uid, text, rows, skip_questions_hint=True,
+                ),
+            )
     except Exception as e:
-        log.error("drip_fire failed: %s", e)
+        log.error("drip_fire failed tag=%s: %s", tag, e)
 
 
 # ---------------- ШАГИ ВОРОНКИ ----------------
 
-async def _funnel_start_fresh(bot, uid):
+async def _funnel_start_fresh(bot, uid, app=None):
     """Приветствие /start — одно сохранение, без пауз, сразу «печатает»."""
     rec = u(uid)
     rec["step"] = "start"
@@ -2474,6 +2605,8 @@ async def _funnel_start_fresh(bot, uid):
             if len(hist) > 50:
                 del hist[0]
     save_state(STATE)
+    if app:
+        schedule_step_drips(app, uid, "start")
 
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2531,7 +2664,7 @@ async def _cmd_start_impl(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_exempt_user(user):
         rec["last_kb_msg"] = None
         rec["active_callbacks"] = []
-        await _funnel_start_fresh(context.bot, uid)
+        await _funnel_start_fresh(context.bot, uid, context.application)
         return
 
     if is_funnel_locked(rec):
@@ -2553,7 +2686,7 @@ async def _cmd_start_impl(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     rec["last_kb_msg"] = None
     rec["active_callbacks"] = []
-    await _funnel_start_fresh(context.bot, uid)
+    await _funnel_start_fresh(context.bot, uid, context.application)
 
 
 async def _job_after_circle_intro(context: ContextTypes.DEFAULT_TYPE):
@@ -2568,6 +2701,7 @@ async def _job_after_circle_intro(context: ContextTypes.DEFAULT_TYPE):
                         skip_pause=True, guide_teaser=True,
                         milestone="after_circle_intro")
         set_step(uid, "intro")
+        schedule_step_drips(app, uid, "intro")
     await run_uid_job(context, work)
 
 
@@ -2583,13 +2717,14 @@ async def _job_after_v1_video(context: ContextTypes.DEFAULT_TYPE):
                         [(BTN["v1_proofs"], "go_v1_proofs", False)],
                         skip_pause=True, milestone="after_v1_video")
         set_step(uid, "v1")
-        schedule_drip(app, uid, "after_v1", DRIP_HOURS["after_v1"])
+        schedule_step_drips(app, uid, "v1")
     await run_uid_job(context, work)
 
 
 async def _job_after_v2_video(context: ContextTypes.DEFAULT_TYPE):
     async def work(uid, ctx):
         bot = ctx.application.bot
+        app = ctx.application
         try:
             await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
         except Exception:
@@ -2598,6 +2733,7 @@ async def _job_after_v2_video(context: ContextTypes.DEFAULT_TYPE):
                         [(BTN["v2_proofs"], "go_v2_proofs", False)],
                         skip_pause=True, milestone="after_v2_video")
         set_step(uid, "v2")
+        schedule_step_drips(app, uid, "v2")
     await run_uid_job(context, work)
 
 
@@ -2610,10 +2746,10 @@ async def _job_after_v3_video(context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
         await send_step(bot, uid, TXT["after_v3_video"],
-                        [(BTN["to_fork"], "go_v3_after", False)],
+                        [(BTN["to_v3_next"], "go_v3_after", False)],
                         skip_pause=True, milestone="after_v3_video")
         set_step(uid, "v3")
-        schedule_drip(app, uid, "after_v3", DRIP_HOURS["after_v3"])
+        schedule_step_drips(app, uid, "v3")
     await run_uid_job(context, work)
 
 
@@ -2639,13 +2775,14 @@ async def _job_after_fork_circle(context: ContextTypes.DEFAULT_TYPE):
             "в любой момент.",
         )
         schedule_bonus_remind(app, uid)
-        schedule_drip(app, uid, "after_offer", DRIP_HOURS["after_offer"])
+        schedule_step_drips(app, uid, "offer")
     await run_uid_job(context, work)
 
 
 async def go_intro(update, context):
     uid = user_id_from(update)
     bot = context.bot
+    cancel_drips(context.application, uid)
     hold = None
     try:
         await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
@@ -2822,8 +2959,7 @@ async def go_offer_menu(update, context):
     cancel_drips(context.application, uid)
     set_step(uid, "offer")
     await send_with_main_menu(bot, uid, TXT["after_fork_menu_hint"])
-    schedule_drip(context.application, uid, "after_offer",
-                  DRIP_HOURS["after_offer"])
+    schedule_step_drips(context.application, uid, "offer")
 
 
 async def go_offer(update, context):
@@ -2897,7 +3033,7 @@ async def on_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if hm:
             await context.bot.send_message(
                 uid,
-                "💸 Калькулятор — нажмите «Сколько можно заработать на Амазон» "
+                "💸 Калькулятор — нажмите «💸 Посчитать мой доход» "
                 "в меню внизу 👇",
                 reply_markup=main_reply_keyboard(uid),
             )
@@ -2960,8 +3096,7 @@ async def go_lead(update, context):
 
     await show_promo(context, uid, user, "warm")
     track_milestone(uid, "qualified")
-    schedule_drip(context.application, uid, "after_lead",
-                  DRIP_HOURS["after_lead"])
+    schedule_step_drips(context.application, uid, "qualified")
 
     # уведомление тебе
     if ADMIN_ID:
@@ -3400,7 +3535,7 @@ async def cmd_howmany(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await send_with_main_menu(
         bot, uid,
-        "💸 Нажмите «Сколько можно заработать на Амазон» в меню внизу — "
+        "💸 Нажмите «💸 Посчитать мой доход» в меню внизу — "
         "откроется "
         "калькулятор со скринами 👇",
         clear_inline=False,
