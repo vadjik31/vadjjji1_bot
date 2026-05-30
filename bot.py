@@ -27,7 +27,7 @@ from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto,
     KeyboardButton, ReplyKeyboardMarkup, WebAppInfo,
 )
-from telegram.constants import ChatAction
+from telegram.constants import ChatAction, ChatMemberStatus
 from telegram.error import BadRequest, TimedOut
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
@@ -97,7 +97,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260530k"
+WEBAPP_BUILD = "20260530l"
 
 APP_DATA_API = (
     os.getenv("APP_DATA_API", "").strip()
@@ -250,6 +250,11 @@ HOWMANY_IMG_URLS = []
 # ──────────────────────────────────────────────────────────────────────
 # 5) ДОГОНЯЮЩИЕ: 2 на step, часы от входа на step (Д2 = +3 ч к Д1, offer +24 ч).
 # ──────────────────────────────────────────────────────────────────────
+
+# Исключения из защиты funnel_claims: только проверка подписки на канал.
+# Воронка (go_intro, видео и т.д.) — один раз; «Я подписался» — сколько нужно,
+# пока подписка не подтверждена и гайд не выдан.
+FUNNEL_REPEAT_ACTIONS = frozenset({"lm_check"})
 
 STEP_DRIP_SCHEDULE = {
     "start":     [(2, "drip_start_1"), (5, "drip_start_2")],
@@ -755,8 +760,13 @@ _media_send_sem = asyncio.Semaphore(int(os.getenv("MEDIA_SEND_PARALLEL", "8") or
 
 
 def normalize_uid(uid):
-    """Единый int id — никогда не путать пользователей."""
-    return int(uid)
+    """Единый int id — ключи STATE и job_queue всегда через uid_str()."""
+    if isinstance(uid, int):
+        return uid
+    s = str(uid).strip()
+    if s.isdigit() or (s.startswith("-") and s[1:].isdigit()):
+        return int(s)
+    raise ValueError(f"invalid telegram uid: {uid!r}")
 
 
 def uid_str(uid):
@@ -785,9 +795,22 @@ def load_state():
 
 
 def _flush_state_to_disk():
-    """Атомарная запись на диск (снимок STATE — без гонок между пользователями)."""
+    """Атомарная запись на диск (снимок STATE под lock — без гонок)."""
+    snapshot = None
     with _state_data_lock:
-        snapshot = json.loads(json.dumps(STATE, ensure_ascii=False))
+        keys = list(STATE.keys())
+        snapshot = {}
+        for k in keys:
+            for _ in range(4):
+                try:
+                    snapshot[k] = json.loads(
+                        json.dumps(STATE.get(k, {}), ensure_ascii=False),
+                    )
+                    break
+                except (RuntimeError, ValueError, TypeError):
+                    time.sleep(0.002)
+            else:
+                snapshot[k] = dict(STATE.get(k, {}) or {})
     with _state_io_lock:
         try:
             tmp = STATE_FILE + ".tmp"
@@ -851,9 +874,10 @@ def u(uid):
 
 
 def set_step(uid, step):
-    rec = u(uid)
-    rec["step"] = step
-    rec["step_at"] = _now()
+    with _state_data_lock:
+        rec = u(uid)
+        rec["step"] = step
+        rec["step_at"] = _now()
     save_state(STATE)
 
 
@@ -1537,6 +1561,8 @@ async def safe_answer_callback(q, data=""):
             await q.answer("Загружаю приветствие…", show_alert=False)
         elif data in ("go_v1_play", "go_v2_video", "go_v3_video", "go_v3_prep"):
             await q.answer("Загружаю видео…", show_alert=False)
+        elif data == "lm_check":
+            await q.answer("Проверяю подписку…", show_alert=False)
         else:
             await q.answer()
     except BadRequest as e:
@@ -1559,10 +1585,19 @@ async def run_funnel_step(handler, update, context):
     async with _user_funnel_locks[uid_s]:
         rec = u(uid)
         claims = rec.setdefault("funnel_claims", [])
-        if action in claims:
+        if action in claims and action not in FUNNEL_REPEAT_ACTIONS:
             log.info("повторный клик: uid=%s action=%s", uid, action)
+            if q:
+                try:
+                    await q.answer(
+                        "Уже обрабатываю — подождите секунду…",
+                        show_alert=False,
+                    )
+                except Exception:
+                    pass
             return
-        claims.append(action)
+        if action not in claims:
+            claims.append(action)
         if len(claims) > 80:
             rec["funnel_claims"] = claims[-40:]
         invalidate_active_callbacks(uid)
@@ -1721,10 +1756,14 @@ def webapp_url_full(uid=None, app_reset=False):
         url += "&reset=1"
         url += f"&_={int(time.time())}"
     elif uid is not None:
+        uid_s = uid_str(uid)
         if is_funnel_locked(u(uid)):
             url += "&locked=1"
         else:
             url += _webapp_promo_query(uid)
+        if f"uid={uid_s}" not in url:
+            url += f"&uid={uid_s}"
+        url += "&wa=1"
     return url
 
 
@@ -2272,19 +2311,31 @@ async def send_proofs(bot, chat_id, proofs, caption=None, log=True,
 
 # ---------------- ЛИД-МАГНИТ ----------------
 
-async def is_subscribed(bot, user_id) -> bool:
-    """Проверяет, подписан ли пользователь на CHANNEL_USERNAME.
-    Бот должен быть админом канала."""
+async def is_subscribed(bot, user_id):
+    """Проверяет подписку на CHANNEL_USERNAME. None = не удалось проверить."""
+    _ACTIVE = frozenset({
+        ChatMemberStatus.OWNER,
+        ChatMemberStatus.ADMINISTRATOR,
+        ChatMemberStatus.MEMBER,
+        "creator", "administrator", "member", "owner",
+    })
+
+    def _status_val(status):
+        if hasattr(status, "value"):
+            return status.value
+        return str(status)
+
     try:
         member = await bot.get_chat_member(CHANNEL_USERNAME, user_id)
-        if member.status in ("creator", "administrator", "member"):
+        st = _status_val(member.status)
+        if st in _ACTIVE or member.status in _ACTIVE:
             return True
-        if member.status == "restricted":
+        if st == "restricted" or member.status == ChatMemberStatus.RESTRICTED:
             return bool(getattr(member, "is_member", False))
         return False
     except Exception as e:
         log.error("is_subscribed failed (%s): %s", CHANNEL_USERNAME, e)
-        return None  # None = не смогли проверить (канал/права)
+        return None
 
 
 async def show_lead_magnet_offer(bot, chat_id, intro=None):
@@ -2314,6 +2365,16 @@ async def lm_skip(update, context):
 async def lm_check(update, context):
     uid = update.effective_user.id
     bot = context.bot
+    rec = u(uid)
+
+    if rec.get("got_guide"):
+        await send_guide(bot, uid)
+        await send_with_main_menu(
+            bot, uid,
+            "Гайд уже у вас — отправил ещё раз 👇",
+            clear_inline=False, skip_questions_hint=True,
+        )
+        return
 
     sub = await is_subscribed(bot, uid)
 
@@ -2331,7 +2392,6 @@ async def lm_check(update, context):
 
     # подписан — выдаём гайд
     await send_guide(bot, uid)
-    rec = u(uid)
     rec["got_guide"] = True
     save_state(STATE)
     rows = [(BTN["contact"], CALL_LINK, True)]
@@ -2365,8 +2425,11 @@ async def send_guide(bot, chat_id):
 # ---------------- ПОКАЗ ПРОМО ----------------
 
 def cancel_bonus_reminds(app, uid):
+    if not app or not app.job_queue:
+        return
+    prefix = f"bonusremind_{uid_str(uid)}_"
     for job in app.job_queue.jobs():
-        if job.name and job.name.startswith(f"bonusremind_{uid}_"):
+        if job.name and job.name.startswith(prefix):
             job.schedule_removal()
 
 
@@ -2391,10 +2454,11 @@ def schedule_bonus_remind(app, uid, delay_sec=None):
         cancel_bonus_reminds(app, uid)
         return
     cancel_bonus_reminds(app, uid)
+    uid_n = normalize_uid(uid)
     app.job_queue.run_once(
         bonus_remind_fire, when=delay_sec or BONUS_REMIND_SEC,
-        name=f"bonusremind_{uid}_tick",
-        data={"uid": uid},
+        name=f"bonusremind_{uid_str(uid_n)}_tick",
+        data={"uid": uid_n},
     )
 
 
@@ -2423,14 +2487,16 @@ async def bonus_remind_fire(context: ContextTypes.DEFAULT_TYPE):
 
 def cancel_promo_jobs(app, uid):
     """Снять таймер, напоминание и задачу удаления промо."""
+    if not app or not app.job_queue:
+        return
+    uid_s = uid_str(uid)
+    names = {
+        f"promotick_{uid_s}",
+        f"promoremind_{uid_s}",
+        f"promoexpire_{uid_s}",
+    }
     for job in app.job_queue.jobs():
-        if not job.name:
-            continue
-        if job.name in (
-            f"promotick_{uid}",
-            f"promoremind_{uid}",
-            f"promoexpire_{uid}",
-        ):
+        if job.name and job.name in names:
             job.schedule_removal()
 
 
@@ -2560,27 +2626,31 @@ async def show_promo(context, uid, user, temperature, from_app=False):
         rec["promo"]["pin_msg_id"] = pin.message_id
         rec["promo"]["pin_started"] = int(time.time())  # для расчёта частоты обновлений
         save_state(STATE)
-        # «Живой» таймер: первые 5 минут — каждые 15 сек, дальше каждые 30 мин
-        context.application.job_queue.run_once(
-            promo_tick, when=15,
-            name=f"promotick_{uid}", data={"uid": uid},
-        )
+        jq = context.application.job_queue
+        if jq:
+            uid_n = normalize_uid(uid)
+            uid_s = uid_str(uid_n)
+            jq.run_once(
+                promo_tick, when=15,
+                name=f"promotick_{uid_s}", data={"uid": uid_n},
+            )
     except Exception as e:
         log.error("promo pin failed: %s", e)
 
-    # в момент окончания срока — удалить сообщения со скидкой и кнопкой аппки
-    expire_in = max(1, deadline - int(time.time()))
-    context.application.job_queue.run_once(
-        promo_expire, when=expire_in,
-        name=f"promoexpire_{uid}", data={"uid": uid},
-    )
-
-    # напоминание за пару часов до конца
-    remind_in = max(60, (PROMO_HOURS - 2) * 3600)
-    context.application.job_queue.run_once(
-        promo_remind, when=remind_in,
-        name=f"promoremind_{uid}", data={"uid": uid},
-    )
+    jq = context.application.job_queue
+    if jq:
+        uid_n = normalize_uid(uid)
+        uid_s = uid_str(uid_n)
+        expire_in = max(1, deadline - int(time.time()))
+        jq.run_once(
+            promo_expire, when=expire_in,
+            name=f"promoexpire_{uid_s}", data={"uid": uid_n},
+        )
+        remind_in = max(60, (PROMO_HOURS - 2) * 3600)
+        jq.run_once(
+            promo_remind, when=remind_in,
+            name=f"promoremind_{uid_s}", data={"uid": uid_n},
+        )
 
     await refresh_main_keyboard(
         bot, uid,
@@ -2616,10 +2686,12 @@ async def promo_tick(context: ContextTypes.DEFAULT_TYPE):
     # перепланируем следующий тик: первые 5 минут — каждые 15 сек, потом 30 мин
     elapsed = time.time() - pin_started
     next_in = 15 if elapsed < 300 else 1800
-    context.application.job_queue.run_once(
-        promo_tick, when=next_in,
-        name=f"promotick_{uid}", data={"uid": uid},
-    )
+    jq = context.application.job_queue
+    if jq:
+        jq.run_once(
+            promo_tick, when=next_in,
+            name=f"promotick_{uid_str(uid)}", data={"uid": normalize_uid(uid)},
+        )
 
 
 async def promo_remind(context: ContextTypes.DEFAULT_TYPE):
@@ -2644,8 +2716,11 @@ async def promo_remind(context: ContextTypes.DEFAULT_TYPE):
 # ---------------- ДОГОНЯЮЩИЕ ----------------
 
 def cancel_drips(app, uid):
+    if not app or not app.job_queue:
+        return
+    prefix = f"drip_{uid_str(uid)}_"
     for job in app.job_queue.jobs():
-        if job.name and job.name.startswith(f"drip_{uid}_"):
+        if job.name and job.name.startswith(prefix):
             job.schedule_removal()
 
 
@@ -2674,18 +2749,65 @@ def _drip_rows(spec):
     return [(BTN[b], cb, kind) for b, cb, kind in spec]
 
 
-def schedule_step_drips(app, uid, step_key):
+def schedule_step_drips(app, uid, step_key, step_at_ts=None):
     """2 догонялки на step — часы от входа на step (см. STEP_DRIP_SCHEDULE)."""
     if not app or not app.job_queue:
         return
     cancel_drips(app, uid)
+    uid_n = normalize_uid(uid)
+    now = time.time()
+    if step_at_ts is None:
+        step_at_str = u(uid_n).get("step_at")
+        if step_at_str:
+            try:
+                step_at_ts = datetime.strptime(
+                    step_at_str, "%Y-%m-%d %H:%M:%S",
+                ).timestamp()
+            except ValueError:
+                step_at_ts = now
+        else:
+            step_at_ts = now
+    elapsed = max(0, now - step_at_ts)
+    catch_up_delay = 90
     for hours, tag in STEP_DRIP_SCHEDULE.get(step_key, ()):
+        due_in = hours * 3600 - elapsed
+        if due_in < -3600:
+            continue
+        if due_in > 0:
+            when = max(60, int(due_in))
+        else:
+            when = catch_up_delay
+            catch_up_delay += 120
         app.job_queue.run_once(
             drip_fire,
-            when=max(60, int(hours * 3600)),
-            name=f"drip_{uid}_{tag}",
-            data={"uid": uid, "tag": tag},
+            when=when,
+            name=f"drip_{uid_str(uid_n)}_{tag}",
+            data={"uid": uid_n, "tag": tag},
         )
+
+
+def restore_step_drips(application):
+    """После рестарта бота — восстановить догонялки по step_at."""
+    if not application.job_queue:
+        return
+    count = 0
+    for uid, rec in STATE.items():
+        step_key = rec.get("step")
+        if step_key not in STEP_DRIP_SCHEDULE:
+            continue
+        step_at_str = rec.get("step_at")
+        if not step_at_str:
+            continue
+        try:
+            step_at_ts = datetime.strptime(
+                step_at_str, "%Y-%m-%d %H:%M:%S",
+            ).timestamp()
+        except ValueError:
+            continue
+        schedule_step_drips(application, uid, step_key, step_at_ts=step_at_ts)
+        count += 1
+    if count:
+        log.info("step_drip: восстановлено для %s пользователей", count)
 
 
 async def drip_fire(context: ContextTypes.DEFAULT_TYPE):
@@ -2849,7 +2971,7 @@ async def _job_after_circle_intro(context: ContextTypes.DEFAULT_TYPE):
                         skip_pause=True, guide_teaser=True,
                         milestone="after_circle_intro")
         set_step(uid, "intro")
-        schedule_step_drips(app, uid, "intro")
+        schedule_step_drips(ctx.application, uid, "intro")
     await run_uid_job(context, work)
 
 
@@ -3349,6 +3471,7 @@ async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if is_menu_formats_text(text):
         set_step(uid, "offer")
+        await mark_webapp_opened(bot, uid, context.application)
         if WEBAPP_URL:
             label = formats_menu_label(uid)
             await refresh_main_keyboard(
@@ -3508,6 +3631,9 @@ async def grab_file_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_bot_admin(update.effective_user):
         return
     m = update.message
+    cap = (m.caption or m.text or "").strip().lower()
+    if not cap.startswith("/fid") and not cap.startswith("fid"):
+        return
     out = None
     if m.video_note:
         out = (
@@ -3835,8 +3961,8 @@ async def cmd_webappcheck(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     issues = []
-    if "pingBot('webapp_open')" in body or "sendData('webapp_open')" in body:
-        issues.append("⚠️ webapp_open через sendData — аппка сразу закрывается")
+    if "sendData('webapp_open')" in body and "wa=1" not in body:
+        issues.append("⚠️ sendData('webapp_open') закрывает аппку — лучше wa=1 + меню")
     if "setTimeout(function(){ pingBot('webapp_ready')" in body:
         issues.append("⚠️ webapp_ready через 30 сек — лишнее")
     build = "не найдена"
@@ -4009,6 +4135,7 @@ async def post_init(application):
         log.warning("post_init: %s", e)
     setup_auto_reports(application)
     restore_bonus_reminds(application)
+    restore_step_drips(application)
     asyncio.create_task(_state_flush_loop())
     log.info("Фоновое сохранение users.json включено (не блокирует других пользователей)")
 
