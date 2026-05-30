@@ -609,8 +609,7 @@ TXT = {
         "Готово, держите гайд 🎁\n\n"
         "Прочитайте перед первой закупкой — он может сэкономить вам "
         "деньги и нервы.\n\n"
-        "Если захотите разобрать вашу ситуацию — нажмите кнопку ниже "
-        "или «У меня есть вопросы» в меню 👇"
+        "💬 Вопросы — «У меня есть вопросы» в меню внизу 👇"
     ),
     "lm_skip": (
         "Без проблем 🙂\n\n"
@@ -1812,18 +1811,18 @@ def pay_keyboard_rows(uid):
 
 
 async def refresh_main_keyboard(bot, uid, hint=None, app_reset=False):
-    """Обновить нижнее меню (например, после 30 с в Mini App)."""
+    """Обновить нижнее меню (например, после смены скидки)."""
     text = hint or "👇"
+    uid_n = normalize_uid(uid)
+    markup = main_reply_keyboard(uid_n, app_reset=app_reset)
     try:
-        await bot.send_message(
-            uid, text, reply_markup=main_reply_keyboard(uid, app_reset=app_reset),
-        )
+        await bot.send_message(uid_n, text, reply_markup=markup)
     except Exception as e:
         log.error("refresh_main_keyboard failed: %s", e)
         try:
             await bot.send_message(
-                uid, text,
-                reply_markup=main_reply_keyboard_fallback(uid, app_reset=app_reset),
+                uid_n, text,
+                reply_markup=main_reply_keyboard_fallback(uid_n, app_reset=app_reset),
             )
         except Exception as e2:
             log.error("refresh_main_keyboard fallback failed: %s", e2)
@@ -1865,18 +1864,21 @@ async def _delete_promo_chat_messages(bot, uid, rec):
 
 async def full_reset_user_for_test(bot, uid, application):
     """Полный сброс: state, таймеры, меню без скидки, reset=1 в URL аппки."""
-    uid_s = str(uid)
+    uid_n = normalize_uid(uid)
+    uid_s = uid_str(uid_n)
     rec = STATE.get(uid_s) or {}
-    await _delete_promo_chat_messages(bot, uid, rec)
-    cancel_drips(application, uid)
-    cancel_promo_jobs(application, uid)
-    cancel_bonus_reminds(application, uid)
-    cancel_funnel_pause_jobs(application, uid)
+    await _delete_promo_chat_messages(bot, uid_n, rec)
+    cancel_all_user_jobs(application, uid_n)
+    await clear_nudge(bot, uid_n)
+    try:
+        await bot.unpin_all_chat_messages(uid_n)
+    except Exception:
+        pass
     if uid_s in STATE:
         del STATE[uid_s]
     save_state(STATE)
     await refresh_main_keyboard(
-        bot, uid,
+        bot, uid_n,
         f"🧹 Сброшено. «{MENU_FORMATS}» — обычные цены.\n"
         f"Откройте кнопку заново — localStorage аппки тоже очистится.",
         app_reset=True,
@@ -2010,8 +2012,10 @@ def main_reply_keyboard(uid=None, app_reset=False):
 
 
 async def send_with_main_menu(bot, chat_id, text, clear_inline=False,
-                              skip_questions_hint=False):
+                              skip_questions_hint=False, skip_pause=False,
+                              milestone=None):
     """Текст + нижнее меню. Inline-кнопки прошлых сообщений не снимаем."""
+    chat_id = normalize_uid(chat_id)
     invalidate_active_callbacks(chat_id)
     if clear_inline:
         rec = u(chat_id)
@@ -2025,7 +2029,10 @@ async def send_with_main_menu(bot, chat_id, text, clear_inline=False,
             rec["last_kb_msg"] = None
     if not skip_questions_hint:
         text = append_questions_hint(chat_id, text)
-    await pause_text(bot, chat_id, text=text)
+    if milestone:
+        track_milestone(chat_id, milestone)
+    if not skip_pause:
+        await pause_text(bot, chat_id, text=text)
     msg = await bot.send_message(
         chat_id, text, reply_markup=main_reply_keyboard(chat_id),
     )
@@ -2394,10 +2401,10 @@ async def lm_check(update, context):
     await send_guide(bot, uid)
     rec["got_guide"] = True
     save_state(STATE)
-    rows = [(BTN["contact"], CALL_LINK, True)]
-    if not promo_is_active(rec):
-        rows.insert(0, (BTN["to_lead"], "go_lead", False))
-    await send_step(bot, uid, TXT["lm_delivered"], rows, questions_hint=True)
+    await send_step(
+        bot, uid, TXT["lm_delivered"],
+        skip_pause=True, skip_questions_hint=True,
+    )
 
 
 async def send_guide(bot, chat_id):
@@ -2490,14 +2497,40 @@ def cancel_promo_jobs(app, uid):
     if not app or not app.job_queue:
         return
     uid_s = uid_str(uid)
+    legacy = str(normalize_uid(uid))
     names = {
-        f"promotick_{uid_s}",
-        f"promoremind_{uid_s}",
-        f"promoexpire_{uid_s}",
+        f"promotick_{uid_s}", f"promotick_{legacy}",
+        f"promoremind_{uid_s}", f"promoremind_{legacy}",
+        f"promoexpire_{uid_s}", f"promoexpire_{legacy}",
     }
     for job in app.job_queue.jobs():
         if job.name and job.name in names:
             job.schedule_removal()
+
+
+def cancel_all_user_jobs(app, uid):
+    """Снять все отложенные задачи пользователя (для /clean после полной воронки)."""
+    if not app or not app.job_queue:
+        return
+    uid_n = normalize_uid(uid)
+    uid_s = uid_str(uid_n)
+    legacy = str(uid_n)
+    prefixes = (
+        f"drip_{uid_s}_", f"drip_{legacy}_",
+        f"bonusremind_{uid_s}_", f"bonusremind_{legacy}_",
+        f"funnel_{uid_n}_pause_", f"funnel_{uid_s}_pause_",
+        f"funnel_{legacy}_pause_",
+    )
+    for job in app.job_queue.jobs():
+        if not job.name:
+            continue
+        if any(job.name.startswith(p) for p in prefixes):
+            job.schedule_removal()
+            continue
+        data = job.data or {}
+        if data.get("uid") in (uid_n, uid_s, legacy):
+            job.schedule_removal()
+    cancel_promo_jobs(app, uid_n)
 
 
 async def expire_promo(bot, uid, rec):
@@ -2535,10 +2568,13 @@ async def expire_promo(bot, uid, rec):
 
 async def promo_expire(context: ContextTypes.DEFAULT_TYPE):
     """Ровно в deadline: удалить промо-сообщения (таймер к этому моменту уже отработал)."""
-    uid = context.job.data["uid"]
+    uid = normalize_uid(context.job.data["uid"])
     rec = u(uid)
     promo = rec.get("promo") or {}
-    if time.time() < promo.get("deadline", 0) - 2:
+    deadline = promo.get("deadline", 0)
+    if not deadline or not promo.get("active", True):
+        return
+    if time.time() < deadline - 2:
         return
     cancel_promo_jobs(context.application, uid)
     cancel_bonus_reminds(context.application, uid)
@@ -2608,7 +2644,6 @@ async def show_promo(context, uid, user, temperature, from_app=False):
             webapp_promo_url(uid, deadline, link),
             "webapp",
         ))
-    rows.append((BTN["contact"], CALL_LINK, True))
 
     promo_msg = await send_step(bot, uid, intro, rows, questions_hint=True)
     rec["promo"]["main_msg_id"] = promo_msg.message_id
@@ -3032,18 +3067,22 @@ async def _job_after_fork_circle(context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
         set_step(uid, "offer")
-        await send_step(
-            bot, uid, TXT["after_fork_circle"],
-            fork_inline_rows(uid),
+        offer_text = (
+            TXT["after_fork_circle"]
+            + "\n\n👇 Кнопки внизу: «Форматы и цены», калькулятор, гайд — "
+            "нажимайте в любой момент."
+        )
+        await send_with_main_menu(
+            bot, uid, offer_text,
             skip_pause=True, skip_questions_hint=True,
             milestone="after_fork",
         )
-        track_milestone(uid, "after_fork")
-        await refresh_main_keyboard(
-            bot, uid,
-            "👇 Кнопки меню закреплены внизу — ими можно пользоваться "
-            "в любой момент.",
-        )
+        rows = fork_inline_rows(uid)
+        if rows:
+            await send_step(
+                bot, uid, "Или быстрые кнопки здесь 👇",
+                rows, skip_pause=True, skip_questions_hint=True,
+            )
         schedule_bonus_remind(app, uid)
         schedule_step_drips(app, uid, "offer")
     await run_uid_job(context, work)
@@ -3813,7 +3852,8 @@ async def cmd_clean(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await full_reset_user_for_test(bot, uid, context.application)
     await update.message.reply_text(
         "🧹 Готово. Меню обновлено — «Форматы» без скидки.\n"
-        "Нажми «💎 Форматы…» внизу (новая кнопка), затем /start или /check."
+        "Нажми «💎 Форматы…» внизу (новая кнопка), затем /start или /check.\n"
+        "Работает и после полного прохода воронки, не только после /check."
     )
 
 
@@ -3841,18 +3881,22 @@ async def _admin_jump_offer_after_fork(bot, uid, application):
         )
         return False
     set_step(uid, "offer")
-    track_milestone(uid, "after_fork")
-    await send_step(
-        bot, uid, TXT["after_fork_circle"],
-        fork_inline_rows(uid),
+    offer_text = (
+        TXT["after_fork_circle"]
+        + "\n\n👇 Кнопки внизу: «Форматы и цены», калькулятор, гайд — "
+        "нажимайте в любой момент."
+    )
+    await send_with_main_menu(
+        bot, uid, offer_text,
         skip_pause=True, skip_questions_hint=True,
         milestone="after_fork",
     )
-    await refresh_main_keyboard(
-        bot, uid,
-        "👇 Кнопки меню закреплены внизу — ими можно пользоваться "
-        "в любой момент.",
-    )
+    rows = fork_inline_rows(uid)
+    if rows:
+        await send_step(
+            bot, uid, "Или быстрые кнопки здесь 👇",
+            rows, skip_pause=True, skip_questions_hint=True,
+        )
     schedule_bonus_remind(application, uid)
     return True
 
