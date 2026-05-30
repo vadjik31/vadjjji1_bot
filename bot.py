@@ -96,7 +96,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260530c"
+WEBAPP_BUILD = "20260530d"
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -367,12 +367,31 @@ TXT = {
         "✅ Если вы дошли до этого момента — вы уже сделали больше, "
         "чем большинство.\n\n"
         "Разобрали путь Игоря, увидели рабочую схему и поняли, какие "
-        "страхи чаще всего мешают начать. Осталось последнее — как пройти "
-        "этот путь самому."
+        "страхи чаще всего мешают начать.\n\n"
+        "💸 А в конце вы узнаете, сколько можете заработать на Amazon "
+        "именно на своём примере — мы сделали калькулятор под ваш "
+        "бюджет. Осталось последнее — как пройти этот путь самому."
     ),
     "after_v3": (
         "Как получить первые продажи без хаоса и типичных ошибок? "
         "Если интересно — жмите 👇"
+    ),
+    "calc_pitch": (
+        "Прежде чем показать форматы — кое-что интереснее 👇\n\n"
+        "Мы сделали калькулятор, который считает на вашем примере: "
+        "вводите, сколько готовы вложить сейчас, сколько можете "
+        "добавлять каждый месяц и примерные расходы — а он показывает, "
+        "где вы можете оказаться через год, если начнёте Amazon "
+        "сегодня.\n\n"
+        "Это не «средние по больнице», а ваши цифры. Откройте — "
+        "займёт минуту 👇"
+    ),
+    "calc_pitch_nourl": (
+        "Прежде чем показать форматы — пара слов про деньги 🙂\n\n"
+        "Сколько реально заработать на Amazon, зависит от того, "
+        "сколько вы вкладываете и как часто докупаете товар. На "
+        "разборе мы считаем это под вашу ситуацию.\n\n"
+        "Идём дальше к форматам 👇"
     ),
     "bonus_offer_after_app": (
         "Но вы могли бы активировать бонус и получить уникальные цены "
@@ -510,15 +529,17 @@ TXT = {
         "отличия мелкие. Сейчас покажу на примерах 👇"
     ),
     "drip_v3_1": (
-        "Дальше — про то, как пройти этот путь: самому, в группе или "
-        "с сопровождением.\n\n"
-        "Без обязательств — можно просто посмотреть варианты и закрыть 👇"
+        "Кстати, прежде чем смотреть форматы — у меня есть для вас "
+        "калькулятор 💸\n\n"
+        "Вводите свой бюджет — он считает, где вы можете быть через "
+        "год, если начнёте Amazon сегодня. На вашем примере, не "
+        "«средние цифры». Гляньте 👇"
     ),
     "drip_v3_2": (
-        "Если Amazon ещё интересен — логично хотя бы глянуть, как "
-        "заходят люди.\n\n"
-        "Там же калькулятор: прикинуть цифры под свой бюджет. И можно "
-        "задать вопрос, если что-то не сходится 👇"
+        "Если Amazon ещё интересен — посчитайте на себя 🙂\n\n"
+        "Калькулятор спрашивает, сколько готовы вложить и докупать "
+        "каждый месяц, и показывает результат через год. Минута — и "
+        "видно, ваше это или нет 👇"
     ),
     "drip_offer_1": (
         "Не торопитесь с решением — это нормально 🙂\n\n"
@@ -662,6 +683,9 @@ BTN = {
     "show_formats": "➡️ Показать форматы",
     "to_fork":    "➡️ Дальше",
     "to_fork_how": "Хочу узнать как",
+    "calc_open":  "💸 Узнать мою цифру за год",
+    "calc_skip":  "Пропустить, к форматам →",
+    "calc_to_fork": "➡️ Показать форматы",
     "students":   "Результаты учеников",
     "programs":   "💎 Открыть форматы и цены",
     "site":       "Открыть сайт с результатами",
@@ -2511,8 +2535,8 @@ DRIP_TAG_CONFIG = {
     "drip_v1_2":     ("v1", "drip_v1_2",        [("v1_proofs", "go_v1_proofs", False)], False),
     "drip_v2_1":     ("v2", "drip_v2_1",        [("v2_proofs", "go_v2_proofs", False)], False),
     "drip_v2_2":     ("v2", "drip_v2_2",        [("v2_proofs", "go_v2_proofs", False)], False),
-    "drip_v3_1":     ("v3", "drip_v3_1",        [("show_formats", "go_fork", False)], False),
-    "drip_v3_2":     ("v3", "drip_v3_2",        [("show_formats", "go_fork", False)], False),
+    "drip_v3_1":     ("v3", "drip_v3_1",        [("show_formats", "go_calc", False)], False),
+    "drip_v3_2":     ("v3", "drip_v3_2",        [("show_formats", "go_calc", False)], False),
     "drip_offer_1":  ("offer", "drip_offer_1",  None, True),
     "drip_offer_2":  ("offer", "drip_offer_2",  None, True),
     "drip_lead_1":   ("qualified", "drip_lead_1", [("contact", CALL_LINK, True)], False),
@@ -2934,9 +2958,30 @@ async def go_v3_after(update, context):
     uid = update.effective_user.id
     bot = context.bot
     await send_step(bot, uid, TXT["after_v3"],
-                    [(BTN["to_fork_how"], "go_fork", False)],
+                    [(BTN["to_fork_how"], "go_calc", False)],
                     skip_pause=False, guide_teaser=True,
                     milestone="after_v3")
+
+
+async def go_calc(update, context):
+    """Шаг калькулятора перед оффером. Если HOWMANY настроен —
+    кнопка-вебапп + «пропустить». Если нет — короткий текст и сразу к форку."""
+    uid = update.effective_user.id
+    bot = context.bot
+    cancel_drips(context.application, uid)
+    hm = howmany_webapp_url()
+    if hm:
+        rows = [
+            [(BTN["calc_open"], hm, "webapp")],
+            [(BTN["calc_skip"], "go_fork", False)],
+        ]
+        await send_step(bot, uid, TXT["calc_pitch"], rows,
+                        skip_pause=False, milestone="calc_pitch")
+    else:
+        # калькулятор не настроен — не задерживаем, мягко ведём к форматам
+        await send_step(bot, uid, TXT["calc_pitch_nourl"],
+                        [(BTN["calc_to_fork"], "go_fork", False)],
+                        skip_pause=False, milestone="calc_pitch")
 
 
 async def go_fork(update, context):
@@ -3254,6 +3299,7 @@ async def _on_button_impl(update: Update, context: ContextTypes.DEFAULT_TYPE,
         "go_v3_prep":       go_v3_prep,
         "go_v3_video":      go_v3_video,
         "go_v3_after":      go_v3_after,
+        "go_calc":          go_calc,
         "go_fork":          go_fork,
         "go_offer":         go_offer,
         "go_offer_menu":    go_offer_menu,
