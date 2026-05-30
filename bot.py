@@ -97,7 +97,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260530g"
+WEBAPP_BUILD = "20260530h"
 
 APP_DATA_API = (
     os.getenv("APP_DATA_API", "").strip()
@@ -1701,7 +1701,7 @@ def is_menu_formats_text(text):
     return bool(text and text.startswith(BTN["promo_app"]))
 
 
-def webapp_url_full(uid=None):
+def webapp_url_full(uid=None, app_reset=False):
     """URL Mini App с подставленными ссылками contact/site."""
     if not WEBAPP_URL:
         return ""
@@ -1716,7 +1716,10 @@ def webapp_url_full(uid=None):
     if fd:
         url += f"&flowdate={quote(fd, safe='')}"
         url += f"&flowtime={quote(_FLOW_CACHE.get('flow_time') or '19:00', safe='')}"
-    if uid is not None:
+    if app_reset:
+        url += "&reset=1"
+        url += f"&_={int(time.time())}"
+    elif uid is not None:
         if is_funnel_locked(u(uid)):
             url += "&locked=1"
         else:
@@ -1768,36 +1771,75 @@ def pay_keyboard_rows(uid):
     )]]
 
 
-async def refresh_main_keyboard(bot, uid, hint=None):
+async def refresh_main_keyboard(bot, uid, hint=None, app_reset=False):
     """Обновить нижнее меню (например, после 30 с в Mini App)."""
     text = hint or "👇"
     try:
         await bot.send_message(
-            uid, text, reply_markup=main_reply_keyboard(uid),
+            uid, text, reply_markup=main_reply_keyboard(uid, app_reset=app_reset),
         )
     except Exception as e:
         log.error("refresh_main_keyboard failed: %s", e)
         try:
             await bot.send_message(
                 uid, text,
-                reply_markup=main_reply_keyboard_fallback(uid),
+                reply_markup=main_reply_keyboard_fallback(uid, app_reset=app_reset),
             )
         except Exception as e2:
             log.error("refresh_main_keyboard fallback failed: %s", e2)
 
 
-def main_reply_keyboard_fallback(uid=None):
+def main_reply_keyboard_fallback(uid=None, app_reset=False):
     """Меню без WebApp/url — если клиент не принял полную клавиатуру."""
-    fmt = formats_menu_label(uid) if uid is not None else MENU_FORMATS
+    fmt = MENU_FORMATS if app_reset else (
+        formats_menu_label(uid) if uid is not None else MENU_FORMATS
+    )
     rows = [
         [KeyboardButton(MENU_EARN), KeyboardButton(fmt)],
         [KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)],
         [KeyboardButton(MENU_ABOUT), KeyboardButton(MENU_QUESTIONS)],
     ]
-    if uid is not None:
+    if uid is not None and not app_reset:
         rows.extend(pay_keyboard_rows(uid))
     return ReplyKeyboardMarkup(
         rows, resize_keyboard=True, is_persistent=True,
+    )
+
+
+async def _delete_promo_chat_messages(bot, uid, rec):
+    """Удалить промо-сообщения и pin без funnel_locked (для /clean)."""
+    promo = rec.get("promo") or {}
+    pin_id = promo.get("pin_msg_id")
+    for mid in {promo.get("main_msg_id"), promo.get("remind_msg_id"), pin_id}:
+        if mid:
+            try:
+                await bot.delete_message(uid, mid)
+            except Exception:
+                pass
+    if pin_id:
+        try:
+            await bot.unpin_chat_message(uid, pin_id)
+        except Exception:
+            pass
+
+
+async def full_reset_user_for_test(bot, uid, application):
+    """Полный сброс: state, таймеры, меню без скидки, reset=1 в URL аппки."""
+    uid_s = str(uid)
+    rec = STATE.get(uid_s) or {}
+    await _delete_promo_chat_messages(bot, uid, rec)
+    cancel_drips(application, uid)
+    cancel_promo_jobs(application, uid)
+    cancel_bonus_reminds(application, uid)
+    cancel_funnel_pause_jobs(application, uid)
+    if uid_s in STATE:
+        del STATE[uid_s]
+    save_state(STATE)
+    await refresh_main_keyboard(
+        bot, uid,
+        f"🧹 Сброшено. «{MENU_FORMATS}» — обычные цены.\n"
+        f"Откройте кнопку заново — localStorage аппки тоже очистится.",
+        app_reset=True,
     )
 
 
@@ -1882,26 +1924,28 @@ def main_menu_filter():
     return filters.Regex(rf"^(({fixed})|({promo})( · .+)?)$")
 
 
-def main_reply_keyboard(uid=None):
+def main_reply_keyboard(uid=None, app_reset=False):
     """Нижнее закреплённое меню (как на скрине).
     1-й ряд: калькулятор + форматы — калькулятор на виду."""
     rows = []
     hm = howmany_webapp_url()
+    fmt = MENU_FORMATS if app_reset else formats_menu_label(uid)
+    app_url = webapp_url_full(uid, app_reset=app_reset)
     # Ряд 1: калькулятор и форматы рядом, оба на самом видном месте
     if WEBAPP_URL and hm:
         rows.append([
             KeyboardButton(MENU_EARN, web_app=WebAppInfo(url=hm)),
             KeyboardButton(
-                formats_menu_label(uid),
-                web_app=WebAppInfo(url=webapp_url_full(uid)),
+                fmt,
+                web_app=WebAppInfo(url=app_url),
             ),
         ])
     elif WEBAPP_URL:
         rows.append([
             KeyboardButton(MENU_EARN),
             KeyboardButton(
-                formats_menu_label(uid),
-                web_app=WebAppInfo(url=webapp_url_full(uid)),
+                fmt,
+                web_app=WebAppInfo(url=app_url),
             ),
         ])
     elif hm:
@@ -1918,7 +1962,7 @@ def main_reply_keyboard(uid=None):
     rows.append([KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)])
     # Ряд 3: обо мне + вопросы
     rows.append([KeyboardButton(MENU_ABOUT), KeyboardButton(MENU_QUESTIONS)])
-    if uid is not None:
+    if uid is not None and not app_reset:
         rows.extend(pay_keyboard_rows(uid))
     return ReplyKeyboardMarkup(
         rows, resize_keyboard=True, is_persistent=True,
@@ -3634,28 +3678,15 @@ async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_clean(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Админ @vadjik: сброс прогресса и скидки для чистого теста."""
+    """Админ @vadjik: сброс прогресса, скидки, меню и localStorage аппки."""
     if not is_bot_admin(update.effective_user):
         return
     uid = update.effective_user.id
-    uid_s = str(uid)
-    cancel_drips(context.application, uid)
-    cancel_promo_jobs(context.application, uid)
-    cancel_bonus_reminds(context.application, uid)
-    rec = STATE.get(uid_s) or {}
-    promo = rec.get("promo") or {}
-    pin_id = promo.get("pin_msg_id")
-    if pin_id:
-        try:
-            await context.bot.unpin_chat_message(uid, pin_id)
-        except Exception:
-            pass
-    if uid_s in STATE:
-        del STATE[uid_s]
-        save_state(STATE)
+    bot = context.bot
+    await full_reset_user_for_test(bot, uid, context.application)
     await update.message.reply_text(
-        "🧹 Сброшено: прогресс воронки, скидка, история, таймеры.\n"
-        "Напиши /start — начнёшь с нуля."
+        "🧹 Готово. Меню обновлено — «Форматы» без скидки.\n"
+        "Нажми «💎 Форматы…» внизу (новая кнопка), затем /start или /check."
     )
 
 
