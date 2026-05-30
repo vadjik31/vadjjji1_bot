@@ -22,6 +22,7 @@ from datetime import datetime, timedelta, time as dt_time
 from zoneinfo import ZoneInfo
 
 from urllib.parse import quote, urlencode
+import urllib.request
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto,
     KeyboardButton, ReplyKeyboardMarkup, WebAppInfo,
@@ -74,9 +75,9 @@ QUESTIONS_HINT = (
 QUESTIONS_STEPS = frozenset({
     "fork", "offer", "lead", "qualified", "qualified_cold",
 })
-PROOFS_BEFORE_CAPTION_SEC = 10.0
-PROOFS_V1_INTRO_PAUSE_SEC = 10.0
-PROOFS_V1_BEFORE_MAIN_SEC = 10.0
+PROOFS_BEFORE_CAPTION_SEC = float(os.getenv("PROOFS_BEFORE_CAPTION_PAUSE", "2") or "2")
+PROOFS_V1_INTRO_PAUSE_SEC = float(os.getenv("PROOFS_V1_INTRO_PAUSE", "1.5") or "1.5")
+PROOFS_V1_BEFORE_MAIN_SEC = float(os.getenv("PROOFS_V1_BEFORE_MAIN_PAUSE", "1.5") or "1.5")
 
 SITE_PAY_ORIGIN = "https://vadjik.com"
 WEBAPP_ENGAGE_SEC = 30
@@ -96,7 +97,21 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260530d"
+WEBAPP_BUILD = "20260530e"
+
+APP_DATA_API = (
+    os.getenv("APP_DATA_API", "").strip()
+    or "https://vadjik.com/api/public/app-data"
+)
+APP_DATA_API_KEY = (
+    os.getenv("APP_DATA_API_KEY", "").strip()
+    or "vadjik_api_2cQ5gPnlBXo7iMAC7UofpurS4fa8uBVM"
+)
+_FLOW_MONTHS = (
+    "янв", "фев", "мар", "апр", "мая", "июн",
+    "июл", "авг", "сен", "окт", "ноя", "дек",
+)
+_FLOW_CACHE = {"flow_date": None, "flow_time": "19:00", "fetched_at": 0.0}
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -1635,6 +1650,57 @@ def _webapp_promo_query(uid):
     )
 
 
+def refresh_flow_cache_sync():
+    """Кэш даты потока с vadjik.com (для подписи кнопок и URL аппки)."""
+    try:
+        req = urllib.request.Request(
+            APP_DATA_API,
+            headers={"X-API-Key": APP_DATA_API_KEY},
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        _FLOW_CACHE["flow_date"] = data.get("flow_date")
+        _FLOW_CACHE["flow_time"] = data.get("flow_time") or "19:00"
+        _FLOW_CACHE["fetched_at"] = time.time()
+        log.info(
+            "flow cache: %s %s",
+            _FLOW_CACHE["flow_date"], _FLOW_CACHE["flow_time"],
+        )
+    except Exception as e:
+        log.warning("flow cache fetch: %s", e)
+
+
+def flow_date_short():
+    """«26 июл» для подписи кнопки."""
+    iso = _FLOW_CACHE.get("flow_date")
+    if not iso:
+        return None
+    try:
+        y, m, d = iso.split("-")
+        mi = int(m) - 1
+        if 0 <= mi < 12:
+            return f"{int(d)} {_FLOW_MONTHS[mi]}"
+    except (ValueError, TypeError):
+        pass
+    return iso
+
+
+def formats_menu_label(uid=None):
+    """Подпись кнопки «Форматы» — со скидкой после закрепления бонуса."""
+    if uid is not None and user_uses_discount_pay(uid):
+        fd = flow_date_short()
+        if fd:
+            return f"{BTN['promo_app']} · {fd}"
+        return BTN["promo_app"]
+    return MENU_FORMATS
+
+
+def is_menu_formats_text(text):
+    if text == MENU_FORMATS:
+        return True
+    return bool(text and text.startswith(BTN["promo_app"]))
+
+
 def webapp_url_full(uid=None):
     """URL Mini App с подставленными ссылками contact/site."""
     if not WEBAPP_URL:
@@ -1646,6 +1712,10 @@ def webapp_url_full(uid=None):
            f"&appv={WEBAPP_BUILD}")
     if HOWMANY_URL:
         url += f"&howmany={quote(howmany_webapp_url(), safe='')}"
+    fd = _FLOW_CACHE.get("flow_date")
+    if fd:
+        url += f"&flowdate={quote(fd, safe='')}"
+        url += f"&flowtime={quote(_FLOW_CACHE.get('flow_time') or '19:00', safe='')}"
     if uid is not None:
         if is_funnel_locked(u(uid)):
             url += "&locked=1"
@@ -1657,7 +1727,8 @@ def webapp_url_full(uid=None):
 def programs_btn(uid=None):
     """Кнопка Mini App или fallback на текстовый показ программ."""
     if WEBAPP_URL:
-        return (BTN["programs"], webapp_url_full(uid), "webapp")
+        label = formats_menu_label(uid) if uid is not None else BTN["programs"]
+        return (label, webapp_url_full(uid), "webapp")
     return (BTN["programs"], "go_programs", False)
 
 
@@ -1717,8 +1788,9 @@ async def refresh_main_keyboard(bot, uid, hint=None):
 
 def main_reply_keyboard_fallback(uid=None):
     """Меню без WebApp/url — если клиент не принял полную клавиатуру."""
+    fmt = formats_menu_label(uid) if uid is not None else MENU_FORMATS
     rows = [
-        [KeyboardButton(MENU_EARN), KeyboardButton(MENU_FORMATS)],
+        [KeyboardButton(MENU_EARN), KeyboardButton(fmt)],
         [KeyboardButton(MENU_RESULTS), KeyboardButton(MENU_GUIDE)],
         [KeyboardButton(MENU_ABOUT), KeyboardButton(MENU_QUESTIONS)],
     ]
@@ -1802,11 +1874,12 @@ def fork_inline_rows(uid):
 
 def main_menu_filter():
     """Только нажатия кнопок нижнего меню (не WebApp — они открываются сами)."""
-    labels = "|".join(re.escape(x) for x in (
+    fixed = "|".join(re.escape(x) for x in (
         MENU_FORMATS, MENU_RESULTS, MENU_GUIDE, MENU_ABOUT, MENU_EARN,
         MENU_QUESTIONS,
     ))
-    return filters.Regex(f"^({labels})$")
+    promo = re.escape(BTN["promo_app"])
+    return filters.Regex(rf"^(({fixed})|({promo})( · .+)?)$")
 
 
 def main_reply_keyboard(uid=None):
@@ -1819,7 +1892,7 @@ def main_reply_keyboard(uid=None):
         rows.append([
             KeyboardButton(MENU_EARN, web_app=WebAppInfo(url=hm)),
             KeyboardButton(
-                MENU_FORMATS,
+                formats_menu_label(uid),
                 web_app=WebAppInfo(url=webapp_url_full(uid)),
             ),
         ])
@@ -1827,7 +1900,7 @@ def main_reply_keyboard(uid=None):
         rows.append([
             KeyboardButton(MENU_EARN),
             KeyboardButton(
-                MENU_FORMATS,
+                formats_menu_label(uid),
                 web_app=WebAppInfo(url=webapp_url_full(uid)),
             ),
         ])
@@ -2374,15 +2447,17 @@ async def show_promo(context, uid, user, temperature, from_app=False):
 
     if promo_is_active(rec):
         left = fmt_left(rec["promo"]["deadline"])
+        label = formats_menu_label(uid)
         if from_app:
             await refresh_main_keyboard(
                 bot, uid,
-                f"👇 «{MENU_FORMATS}» — цены со скидкой ({left})",
+                f"👇 «{label}» — цены со скидкой ({left})",
             )
         else:
-            await bot.send_message(
-                uid,
-                f"Скидка уже закреплена — осталось {left} 👆",
+            await refresh_main_keyboard(
+                bot, uid,
+                f"Скидка уже закреплена — осталось {left}. "
+                f"Откройте «{label}» 👇",
             )
         return
 
@@ -2404,9 +2479,10 @@ async def show_promo(context, uid, user, temperature, from_app=False):
     cancel_promo_jobs(context.application, uid)
 
     if from_app:
+        label = formats_menu_label(uid)
         intro = (
             f"✅ Скидка −{PROMO_DISCOUNT}% закреплена на {PROMO_HOURS} ч.\n\n"
-            f"Снова откройте «{MENU_FORMATS}» — в приложении цены "
+            f"Снова откройте «{label}» — в приложении цены "
             f"«было → стало».\n\n"
             f"На сайте выбираете формат сами 👇"
         )
@@ -2416,7 +2492,11 @@ async def show_promo(context, uid, user, temperature, from_app=False):
 
     rows = [(BTN["promo_get"], link, True)]
     if WEBAPP_URL:
-        rows.append((BTN["promo_app"], webapp_promo_url(uid, deadline, link), "webapp"))
+        rows.append((
+            formats_menu_label(uid),
+            webapp_promo_url(uid, deadline, link),
+            "webapp",
+        ))
     rows.append((BTN["contact"], CALL_LINK, True))
 
     promo_msg = await send_step(bot, uid, intro, rows, questions_hint=True)
@@ -2457,11 +2537,10 @@ async def show_promo(context, uid, user, temperature, from_app=False):
         name=f"promoremind_{uid}", data={"uid": uid},
     )
 
-    if rec.get("step") in OFFER_STEPS:
-        await refresh_main_keyboard(
-            bot, uid,
-            f"👇 «{MENU_FORMATS}» — цены со скидкой на {PROMO_HOURS} ч",
-        )
+    await refresh_main_keyboard(
+        bot, uid,
+        f"👇 «{formats_menu_label(uid)}» — цены со скидкой на {PROMO_HOURS} ч",
+    )
 
 
 async def promo_tick(context: ContextTypes.DEFAULT_TYPE):
@@ -2807,30 +2886,18 @@ async def go_intro(update, context):
     uid = user_id_from(update)
     bot = context.bot
     cancel_drips(context.application, uid)
-    hold = None
     try:
         await bot.send_chat_action(uid, ChatAction.RECORD_VIDEO)
     except Exception:
         pass
-    try:
-        hold = await bot.send_message(uid, "👋 Секунду…")
-    except Exception:
-        pass
     if not await send_circle(bot, uid, "circle_intro"):
-        if hold:
-            try:
-                await bot.edit_message_text(
-                    "Не удалось загрузить — нажмите /start ещё раз 👇",
-                    uid, hold.message_id,
-                )
-            except Exception:
-                pass
-        return
-    if hold:
         try:
-            await bot.delete_message(uid, hold.message_id)
+            await bot.send_message(
+                uid, "Не удалось загрузить — нажмите /start ещё раз 👇",
+            )
         except Exception:
             pass
+        return
     schedule_funnel_pause(
         context.application, uid,
         funnel_pause_sec(uid, CIRCLE_PAUSE_SEC),
@@ -2857,7 +2924,8 @@ async def go_v1_play(update, context):
 
 
 async def go_v1_proofs(update, context):
-    """После видео 1: intro → пауза → 2 скрина → пауза → основной текст."""
+    """После видео 1: intro → короткая пауза → 2 скрина → основной текст.
+    Пользователь сам нажал кнопку — без долгого «печатает» и без 10 с ожидания."""
     uid = user_id_from(update)
     bot = context.bot
     rec = u(uid)
@@ -2867,7 +2935,6 @@ async def go_v1_proofs(update, context):
         log.info("skip duplicate v1_proofs uid=%s milestone=%s", uid, rec.get("milestone"))
         return
     intro = TXT["proofs_v1_intro"]
-    await pause_text(bot, uid)
     await bot.send_message(uid, intro)
     if uid not in _replaying_users and not is_funnel_locked(u(uid)):
         push_history(uid, {"t": "text", "body": intro, "rows": None})
@@ -2879,7 +2946,7 @@ async def go_v1_proofs(update, context):
     await send_step(
         bot, uid, TXT["proofs_v1_caption"],
         [(BTN["to_v2"], "go_v2_prep", False)],
-        skip_pause=False, guide_teaser=True,
+        skip_pause=True, guide_teaser=True,
         milestone="after_v1_proofs",
     )
 
@@ -2910,12 +2977,12 @@ async def go_v2_proofs(update, context):
     uid = update.effective_user.id
     bot = context.bot
     await send_proofs(bot, uid, PROOFS_AFTER_V2, proofs_key="proofs_v2")
-    if PAUSES_ON and not user_fast_mode(uid):
+    if pauses_enabled_for(uid) and not user_fast_mode(uid):
         await asyncio.sleep(PROOFS_BEFORE_CAPTION_SEC)
     await send_step(
         bot, uid, TXT["proofs_v2_caption"],
         [(BTN["v3_yes"], "go_v3_confirm", False)],
-        skip_pause=False, guide_teaser=True,
+        skip_pause=True, guide_teaser=True,
         milestone="proofs_v2_caption",
     )
 
@@ -3175,7 +3242,7 @@ async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text not in (
         MENU_FORMATS, MENU_RESULTS, MENU_GUIDE, MENU_ABOUT, MENU_EARN,
         MENU_QUESTIONS,
-    ):
+    ) and not is_menu_formats_text(text):
         return
     bot = context.bot
     if text == MENU_QUESTIONS:
@@ -3235,12 +3302,14 @@ async def on_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         set_step(uid, "offer")
         await show_lead_magnet_offer(bot, uid)
         return
-    if text == MENU_FORMATS:
+    if is_menu_formats_text(text):
         set_step(uid, "offer")
         if WEBAPP_URL:
+            label = formats_menu_label(uid)
             await refresh_main_keyboard(
                 bot, uid,
-                "👇 Меню обновлено — откройте «Форматы сотрудничества и обучения»",
+                f"👇 «{label}» — нажмите ещё раз, если приложение "
+                f"открылось без скидки",
             )
         else:
             await go_programs(update, context)
@@ -3564,6 +3633,32 @@ async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cmd_clean(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Админ @vadjik: сброс прогресса и скидки для чистого теста."""
+    if not is_bot_admin(update.effective_user):
+        return
+    uid = update.effective_user.id
+    uid_s = str(uid)
+    cancel_drips(context.application, uid)
+    cancel_promo_jobs(context.application, uid)
+    cancel_bonus_reminds(context.application, uid)
+    rec = STATE.get(uid_s) or {}
+    promo = rec.get("promo") or {}
+    pin_id = promo.get("pin_msg_id")
+    if pin_id:
+        try:
+            await context.bot.unpin_chat_message(uid, pin_id)
+        except Exception:
+            pass
+    if uid_s in STATE:
+        del STATE[uid_s]
+        save_state(STATE)
+    await update.message.reply_text(
+        "🧹 Сброшено: прогресс воронки, скидка, история, таймеры.\n"
+        "Напиши /start — начнёшь с нуля."
+    )
+
+
 async def cmd_programs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Открыть витрину программ в любой момент."""
     await go_programs(update, context)
@@ -3778,6 +3873,7 @@ async def post_init(application):
                 "; ".join(bad_hm),
             )
         await refresh_howmany_img_urls(application.bot)
+        await asyncio.to_thread(refresh_flow_cache_sync)
     except Exception as e:
         log.warning("post_init: %s", e)
     setup_auto_reports(application)
@@ -3846,6 +3942,7 @@ def main():
     app.add_handler(CommandHandler("report", cmd_report))
     app.add_handler(CommandHandler("lead", cmd_lead))
     app.add_handler(CommandHandler("reset", cmd_reset))
+    app.add_handler(CommandHandler("clean", cmd_clean))
     app.add_handler(CallbackQueryHandler(on_button))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, on_webapp_data))
     app.add_handler(MessageHandler(main_menu_filter(), on_main_menu))
