@@ -97,7 +97,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260530i"
+WEBAPP_BUILD = "20260530k"
 
 APP_DATA_API = (
     os.getenv("APP_DATA_API", "").strip()
@@ -1432,21 +1432,25 @@ async def send_step(bot, uid, text, rows=None, skip_pause=False,
 PAUSES_ON = os.getenv("PAUSES", "1").strip().lower() not in ("0", "false", "no", "")
 CIRCLE_PAUSE_SEC = float(os.getenv("CIRCLE_PAUSE", "40") or "40")
 MEDIA_TO_TEXT_PAUSE_SEC = float(os.getenv("MEDIA_TO_TEXT_PAUSE", "40") or "40")
-TEXT_PAUSE_SEC = float(os.getenv("TEXT_PAUSE", "7") or "7")
+TEXT_PAUSE_SEC = float(os.getenv("TEXT_PAUSE", "3") or "3")
 
 READ_WPM = int(os.getenv("READ_WPM", "220") or "220")
-MIN_TEXT_PAUSE = float(os.getenv("MIN_TEXT_PAUSE", "5") or "5")
+MIN_TEXT_PAUSE = float(os.getenv("MIN_TEXT_PAUSE", "2") or "2")
 MAX_TEXT_PAUSE = float(os.getenv("MAX_TEXT_PAUSE", "10") or "10")
+SHORT_TEXT_WORDS = int(os.getenv("SHORT_TEXT_WORDS", "55") or "55")
+SHORT_TEXT_MAX_PAUSE = float(os.getenv("SHORT_TEXT_MAX_PAUSE", "3") or "3")
 
 
 def read_time(text):
     """Сколько секунд человеку нужно, чтобы прочитать этот текст.
+    Короткий текст (2–3 строки) → до SHORT_TEXT_MAX_PAUSE (≈3 с).
     Длинный текст → длинная пауза (но не больше MAX_TEXT_PAUSE)."""
     if not text:
         return TEXT_PAUSE_SEC
     words = max(1, len(text.split()))
     t = words / READ_WPM * 60
-    return max(MIN_TEXT_PAUSE, min(t, MAX_TEXT_PAUSE))
+    cap = SHORT_TEXT_MAX_PAUSE if words <= SHORT_TEXT_WORDS else MAX_TEXT_PAUSE
+    return max(MIN_TEXT_PAUSE, min(t, cap))
 
 
 async def pause_text(bot, chat_id, text=None):
@@ -3871,7 +3875,7 @@ async def cmd_pauses(update: Update, context: ContextTypes.DEFAULT_TYPE):
         txt = (
             f"⏳ Паузы для тебя — как у клиентов:\n"
             f"кружок → {int(CIRCLE_PAUSE_SEC)}с, видео → {int(MEDIA_TO_TEXT_PAUSE_SEC)}с, "
-            f"текст → {int(MIN_TEXT_PAUSE)}–{int(MAX_TEXT_PAUSE)}с.\n\n"
+            f"текст → {int(MIN_TEXT_PAUSE)}–{int(SHORT_TEXT_MAX_PAUSE)}с (короткий) / до {int(MAX_TEXT_PAUSE)}с (длинный).\n\n"
             f"/pauses — выкл всё для себя · /fast — без пауз только на видео/кружки."
         )
     else:
