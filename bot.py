@@ -97,7 +97,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260530e"
+WEBAPP_BUILD = "20260530g"
 
 APP_DATA_API = (
     os.getenv("APP_DATA_API", "").strip()
@@ -3659,6 +3659,105 @@ async def cmd_clean(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def _admin_prepare_jump(bot, uid, application):
+    """Общая подготовка перед тестовым прыжком по воронке."""
+    cancel_drips(application, uid)
+    cancel_funnel_pause_jobs(application, uid)
+    rec = u(uid)
+    rec["funnel_claims"] = []
+    rec["last_kb_msg"] = None
+    rec["active_callbacks"] = []
+    invalidate_active_callbacks(uid)
+    await clear_nudge(bot, uid)
+    set_user_fast_mode(uid, True)
+    save_state(STATE)
+
+
+async def _admin_jump_offer_after_fork(bot, uid, application):
+    """2-й кружок → оффер + меню (для /check)."""
+    await _admin_prepare_jump(bot, uid, application)
+    if not await send_circle(bot, uid, "circle_fork"):
+        await bot.send_message(
+            uid,
+            "⚠️ Кружок circle_fork не загрузился — проверь /checkmedia",
+        )
+        return False
+    set_step(uid, "offer")
+    track_milestone(uid, "after_fork")
+    await send_step(
+        bot, uid, TXT["after_fork_circle"],
+        fork_inline_rows(uid),
+        skip_pause=True, skip_questions_hint=True,
+        milestone="after_fork",
+    )
+    await refresh_main_keyboard(
+        bot, uid,
+        "👇 Кнопки меню закреплены внизу — ими можно пользоваться "
+        "в любой момент.",
+    )
+    schedule_bonus_remind(application, uid)
+    return True
+
+
+async def _admin_jump_calc_pitch(bot, uid, application):
+    """Шаг «откройте калькулятор» (для /calculator)."""
+    await _admin_prepare_jump(bot, uid, application)
+    set_step(uid, "v3")
+    track_milestone(uid, "calc_pitch")
+    hm = howmany_webapp_url()
+    if hm:
+        rows = [
+            [(BTN["calc_open"], hm, "webapp")],
+            [(BTN["calc_skip"], "go_fork", False)],
+        ]
+        await send_step(
+            bot, uid, TXT["calc_pitch"], rows,
+            skip_pause=True, milestone="calc_pitch",
+        )
+    else:
+        await send_step(
+            bot, uid, TXT["calc_pitch_nourl"],
+            [(BTN["calc_to_fork"], "go_fork", False)],
+            skip_pause=True, milestone="calc_pitch",
+        )
+    return True
+
+
+async def cmd_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Админ: FAST + последний кружок → оффер и меню (тест аппки)."""
+    if not is_bot_admin(update.effective_user):
+        return
+    uid = update.effective_user.id
+    bot = context.bot
+    ok = await _admin_jump_offer_after_fork(bot, uid, context.application)
+    if ok:
+        await update.message.reply_text(
+            "✅ /check — FAST включён, 2-й кружок и оффер отправлены.\n"
+            "Меню внизу: форматы, калькулятор, гайд.\n"
+            "Сброс: /clean → /start"
+        )
+
+
+async def cmd_calculator(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Админ: FAST + шаг «откройте калькулятор»."""
+    if not is_bot_admin(update.effective_user):
+        return
+    uid = update.effective_user.id
+    bot = context.bot
+    await _admin_jump_calc_pitch(bot, uid, context.application)
+    hm = howmany_webapp_url()
+    if hm:
+        await update.message.reply_text(
+            "✅ /calculator — FAST включён, шаг калькулятора отправлен.\n"
+            "Дальше: «Узнать мою цифру» или «Пропустить» → к форматам."
+        )
+    else:
+        await update.message.reply_text(
+            "✅ Шаг калькулятора отправлен, но HOWMANY_URL не настроен — "
+            "кнопка вебапп не появится."
+        )
+
+
 async def cmd_programs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Открыть витрину программ в любой момент."""
     await go_programs(update, context)
@@ -3943,6 +4042,8 @@ def main():
     app.add_handler(CommandHandler("lead", cmd_lead))
     app.add_handler(CommandHandler("reset", cmd_reset))
     app.add_handler(CommandHandler("clean", cmd_clean))
+    app.add_handler(CommandHandler("check", cmd_check))
+    app.add_handler(CommandHandler("calculator", cmd_calculator))
     app.add_handler(CallbackQueryHandler(on_button))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, on_webapp_data))
     app.add_handler(MessageHandler(main_menu_filter(), on_main_menu))
