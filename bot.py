@@ -97,7 +97,7 @@ WEBAPP_URL = (
     os.getenv("WEBAPP_URL", "").strip()
     or "https://vadjik31.github.io/apppp/index.html"
 )
-WEBAPP_BUILD = "20260530l"
+WEBAPP_BUILD = "20260530m"
 
 APP_DATA_API = (
     os.getenv("APP_DATA_API", "").strip()
@@ -1828,6 +1828,27 @@ async def refresh_main_keyboard(bot, uid, hint=None, app_reset=False):
             log.error("refresh_main_keyboard fallback failed: %s", e2)
 
 
+async def send_promo_app_hint(bot, uid, text, deadline=None, link=None):
+    """Подсказка «откройте аппку» + inline WebApp + нижнее меню."""
+    uid_n = normalize_uid(uid)
+    label = formats_menu_label(uid_n)
+    inline = None
+    if WEBAPP_URL:
+        app_url = (
+            webapp_promo_url(uid_n, deadline, link)
+            if deadline and link
+            else webapp_url_full(uid_n)
+        )
+        inline = InlineKeyboardMarkup([[
+            InlineKeyboardButton(label, web_app=WebAppInfo(url=app_url)),
+        ]])
+    try:
+        await bot.send_message(uid_n, text, reply_markup=inline)
+    except Exception as e:
+        log.error("send_promo_app_hint failed: %s", e)
+    await refresh_main_keyboard(bot, uid_n)
+
+
 def main_reply_keyboard_fallback(uid=None, app_reset=False):
     """Меню без WebApp/url — если клиент не принял полную клавиатуру."""
     fmt = MENU_FORMATS if app_reset else (
@@ -2595,17 +2616,18 @@ async def show_promo(context, uid, user, temperature, from_app=False):
     if promo_is_active(rec):
         left = fmt_left(rec["promo"]["deadline"])
         label = formats_menu_label(uid)
+        promo = rec.get("promo") or {}
         if from_app:
-            await refresh_main_keyboard(
-                bot, uid,
-                f"👇 «{label}» — цены со скидкой ({left})",
-            )
+            hint = f"👇 «{label}» — цены со скидкой ({left})"
         else:
-            await refresh_main_keyboard(
-                bot, uid,
+            hint = (
                 f"Скидка уже закреплена — осталось {left}. "
-                f"Откройте «{label}» 👇",
+                f"Откройте «{label}» 👇"
             )
+        await send_promo_app_hint(
+            bot, uid, hint,
+            promo.get("deadline"), promo.get("link"),
+        )
         return
 
     await clear_nudge(bot, uid)
@@ -2687,9 +2709,10 @@ async def show_promo(context, uid, user, temperature, from_app=False):
             name=f"promoremind_{uid_s}", data={"uid": uid_n},
         )
 
-    await refresh_main_keyboard(
+    await send_promo_app_hint(
         bot, uid,
         f"👇 «{formats_menu_label(uid)}» — цены со скидкой на {PROMO_HOURS} ч",
+        deadline, link,
     )
 
 
